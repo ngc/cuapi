@@ -1,0 +1,8 @@
+# Python
+*.pyc
+__pycache__/
+venv/
+env/
+/.python-version
+.cuapi/
+jobs/
