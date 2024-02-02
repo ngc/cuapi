@@ -1,0 +1,45 @@
+@import url('https://fonts.googleapis.com/css2?family=Inconsolata&family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&family=Red+Hat+Display:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,300;1,400;1,500;1,600;1,700;1,800;1,900&family=Red+Hat+Mono:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,500;1,600;1,700&family=Red+Hat+Text:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,500;1,600;1,700&display=swap');
+
+.calendar-grid{
+    /*
+    This is the table that holds the calendar
+    */
+    width: 100%;
+    border-collapse: collapse;
+    border-spacing: 0;
+    table-layout: fixed;
+    margin: 0;
+    padding: 0;
+    border: 1px solid #000;
+}
+
+.calendar-grid tr{
+    /*
+    This is the row of the table
+    */
+    margin: 0;
+    padding: 0;
+    border: 1px solid #000;
+}
+
+/*
+each column of the table
+*/
+
+.calendar-grid td{
+    margin: 0;
+    padding: 0;
+    border: 1px solid #000;
+    text-align: center;
+    vertical-align: middle;
+    position: relative;
+    height: 40px;
+}
+
+.time-td{
+    width: 5%;
+}
+
+.header-row{
+    font-family: 'Inconsolata', monospace;
+}
