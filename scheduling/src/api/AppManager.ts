@@ -141,8 +141,8 @@ export const AppManager = types
         get bestSchedules() {
             const schedules: Schedule[] = getBestSchedules(
                 self.availableCourses,
-                100,
-                100,
+                10,
+                500,
                 10
             );
             // purge all duplicate schedules

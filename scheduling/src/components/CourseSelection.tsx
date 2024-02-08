@@ -7,14 +7,17 @@ import { CourseDetails, offeringSearch } from "../api/api";
 import { useAppManager } from "../main";
 import { Column, Row } from "./util";
 import { Button } from "baseui/button";
-import { getSnapshot } from "mobx-state-tree";
-import { SectionModel, convert_term } from "../api/AppManager";
+import { Instance, getSnapshot } from "mobx-state-tree";
+import { RelatedOffering, SectionModel, convert_term } from "../api/AppManager";
 import { SegmentedControl, Segment } from "baseui/segmented-control";
+import { Tooltip } from "@mui/material";
+import { motion } from "framer-motion";
 
 export const AddCourseButton = (props: { onClick: () => void }) => {
     const [css, $theme] = useStyletron();
     return (
         <Button
+            kind="secondary"
             onClick={props.onClick}
             overrides={{
                 BaseButton: {
@@ -30,29 +33,30 @@ export const AddCourseButton = (props: { onClick: () => void }) => {
 };
 
 export const SelectedCourseItem = observer(
-    (props: { course: CourseDetails }) => {
+    (props: { course: Instance<typeof RelatedOffering> }) => {
         const [css, $theme] = useStyletron();
         const appManager = useAppManager();
 
         return (
             <div
                 className={css({
-                    height: "1em",
                     width: "100%",
                     backgroundColor: "rgba(255, 0, 0, 0.25)",
                     border: "1px dashed red",
                     padding: "5px",
                     borderRadius: "5px",
+                    fontFamily: "monospace",
+                    fontSize: "1.2em",
                     ":hover": {
                         backgroundColor: "rgba(255, 0, 0, 0.5)",
                         cursor: "pointer",
                     },
                 })}
                 onClick={() => {
-                    appManager.removeCourse(props.course);
+                    appManager.removeOffering(props.course);
                 }}
             >
-                {props.course.subject_code}
+                {props.course.offering_name}
             </div>
         );
     }
@@ -69,6 +73,14 @@ export const CourseSelectionList = observer(
                     textAlign: "center",
                     gap: "10px",
                     alignItems: "center",
+
+                    // glassmorphism
+                    backgroundColor: "rgba(255, 255, 255, 0.5)",
+                    backdropFilter: "blur(10px)",
+                    borderRadius: "10px",
+                    padding: "20px",
+                    boxShadow: "0 4px 8px 0 rgba(0, 0, 0, 0.2)",
+                    margin: "20px",
                 }}
             >
                 <Row>
@@ -77,22 +89,17 @@ export const CourseSelectionList = observer(
 
                 <Column
                     $style={{
-                        gap: "5px",
+                        gap: "2px",
                     }}
                 >
                     {appManager.selectedOfferings.map((course) => {
                         return (
-                            <Row>
-                                {/* <SelectedCourseItem course={course} /> */}
-                                <div
-                                    onClick={() => {
-                                        // appManager.removeOffering(course);
-                                        console.log("$$$", getSnapshot(course));
-                                    }}
-                                >
-                                    {course.offering_name}
-                                </div>
-                            </Row>
+                            <Tooltip title={"Click to remove"}>
+                                <Row>
+                                    {/* <SelectedCourseItem course={course} /> */}
+                                    <SelectedCourseItem course={course} />
+                                </Row>
+                            </Tooltip>
                         );
                     })}
                 </Column>
@@ -117,91 +124,99 @@ export const SearchResultItem = observer(
         const course = props.course;
 
         return (
-            <div
+            <motion.button
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.4 }}
                 className={css({
-                    height: "1em",
-                    width: "100%",
-                    backgroundColor: "rgba(0, 0, 255, 0.25)",
-                    border: "1px dashed blue",
-                    padding: "5px",
-                    borderRadius: "5px",
-                    ":hover": {
-                        backgroundColor: "rgba(0, 0, 255, 0.5)",
-                        cursor: "pointer",
-                    },
+                    all: "unset",
+                    width: "90%",
                 })}
-                onClick={async () => {
-                    const [subject, code] = course.split(" ");
-
-                    const options = await offeringSearch(
-                        convert_term(appManager.selectedTerm),
-                        subject,
-                        code,
-                        1
-                    );
-
-                    let courses = [];
-                    let tutorials = [];
-                    for (const option of options) {
-                        if (option.schedule_type === "Lecture") {
-                            courses.push(option);
-                        } else {
-                            tutorials.push(option);
-                        }
-                    }
-
-                    // print all the courses and tutorials
-                    console.log(courses);
-                    console.log(tutorials);
-
-                    const sectionMap: {
-                        [section: string]: {
-                            courses: CourseDetails[];
-                            tutorials: CourseDetails[];
-                        };
-                    } = {};
-                    // the way we determine a section is by splitting the subject code by space
-                    // the section is the first character of the third part of the split
-                    // if there is no third part, then the section is "$"
-                    for (const course of courses) {
-                        const section =
-                            course.subject_code.split(" ")[2]?.[0] ?? "$";
-                        if (section in sectionMap) {
-                            sectionMap[section].courses.push(course);
-                        } else {
-                            sectionMap[section] = {
-                                courses: [course],
-                                tutorials: [],
-                            };
-                        }
-                    }
-
-                    // now we need to add the tutorials to the section map
-                    for (const tutorial of tutorials) {
-                        const section =
-                            tutorial.subject_code.split(" ")[2]?.[0] ?? "$";
-                        if (section in sectionMap) {
-                            sectionMap[section].tutorials.push(tutorial);
-                        } else {
-                            sectionMap[section] = {
-                                courses: [],
-                                tutorials: [tutorial],
-                            };
-                        }
-                    }
-
-                    const sectionModels: SectionModel[] =
-                        Object.values(sectionMap);
-
-                    appManager.addOffering({
-                        offering_name: course,
-                        section_models: sectionModels,
-                    });
-                    props.closeModal();
-                }}
             >
-                {props.course}
-            </div>
+                <div
+                    className={css({
+                        height: "1em",
+                        border: "1px dashed grey",
+                        padding: "5px",
+                        borderRadius: "5px",
+                        transition: "0.2s",
+                        ":hover": {
+                            backgroundColor: "rgba(0, 0, 0, 0.1)",
+                            cursor: "pointer",
+                        },
+                    })}
+                    onClick={async () => {
+                        const [subject, code] = course.split(" ");
+
+                        const options = await offeringSearch(
+                            convert_term(appManager.selectedTerm),
+                            subject,
+                            code,
+                            1
+                        );
+
+                        let courses = [];
+                        let tutorials = [];
+                        for (const option of options) {
+                            if (option.schedule_type === "Lecture") {
+                                courses.push(option);
+                            } else {
+                                tutorials.push(option);
+                            }
+                        }
+
+                        // print all the courses and tutorials
+                        console.log(courses);
+                        console.log(tutorials);
+
+                        const sectionMap: {
+                            [section: string]: {
+                                courses: CourseDetails[];
+                                tutorials: CourseDetails[];
+                            };
+                        } = {};
+                        // the way we determine a section is by splitting the subject code by space
+                        // the section is the first character of the third part of the split
+                        // if there is no third part, then the section is "$"
+                        for (const course of courses) {
+                            const section =
+                                course.subject_code.split(" ")[2]?.[0] ?? "$";
+                            if (section in sectionMap) {
+                                sectionMap[section].courses.push(course);
+                            } else {
+                                sectionMap[section] = {
+                                    courses: [course],
+                                    tutorials: [],
+                                };
+                            }
+                        }
+
+                        // now we need to add the tutorials to the section map
+                        for (const tutorial of tutorials) {
+                            const section =
+                                tutorial.subject_code.split(" ")[2]?.[0] ?? "$";
+                            if (section in sectionMap) {
+                                sectionMap[section].tutorials.push(tutorial);
+                            } else {
+                                sectionMap[section] = {
+                                    courses: [],
+                                    tutorials: [tutorial],
+                                };
+                            }
+                        }
+
+                        const sectionModels: SectionModel[] =
+                            Object.values(sectionMap);
+
+                        appManager.addOffering({
+                            offering_name: course,
+                            section_models: sectionModels,
+                        });
+                        props.closeModal();
+                    }}
+                >
+                    {props.course}
+                </div>
+            </motion.button>
         );
     }
 );
@@ -302,11 +317,18 @@ export const CourseSelectionModal = (props: {
                 >
                     {searchResults.map((course) => {
                         return (
-                            <SearchResultItem
-                                key={course}
-                                course={course}
-                                closeModal={props.onClose}
-                            />
+                            <Row
+                                $style={{
+                                    width: "100%",
+                                    justifyContent: "center",
+                                }}
+                            >
+                                <SearchResultItem
+                                    key={course}
+                                    course={course}
+                                    closeModal={props.onClose}
+                                />
+                            </Row>
                         );
                     })}
                 </Column>

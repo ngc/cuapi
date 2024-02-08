@@ -7,8 +7,9 @@ import { exportEventsToICS } from "../api/icsGenerator";
 import { observer } from "mobx-react-lite";
 import { useAppManager } from "../main";
 import { toaster } from "baseui/toast";
-import { Row } from "./util";
+import { Column, Row } from "./util";
 import { ChevronLeft, ChevronRight } from "baseui/icon";
+import { Popover } from "@mui/material";
 
 /**
  * The CalendarTime interface is used to represent a time in the calendar.
@@ -95,14 +96,21 @@ const CalendarGrid = observer(() => {
                 <td>Friday</td>
             </tr>
             {hours.map((hour) => {
+                const cellClass = css({
+                    transition: "all 0.2s",
+                    ":hover": {
+                        backgroundColor: "rgba(0, 0, 0, 0.1)",
+                    },
+                });
+
                 return (
                     <tr>
                         <td className={"time-td"}>{hour}</td>
-                        <td></td>
-                        <td></td>
-                        <td></td>
-                        <td></td>
-                        <td></td>
+                        <td className={cellClass}></td>
+                        <td className={cellClass}></td>
+                        <td className={cellClass}></td>
+                        <td className={cellClass}></td>
+                        <td className={cellClass}></td>
                     </tr>
                 );
             })}
@@ -183,36 +191,41 @@ const EventPositioner = (props: {
     }, [props.event.startTime, props.event.endTime]);
 
     return (
-        <div
-            className={css({
-                position: "absolute",
-                top: `${layout.top}px`,
-                left: `${layout.left}px`,
-                width: `${layout.width}px`,
-                height: `${layout.height}px`,
-                backgroundColor: makeHexTransparent(props.event.color, 0.5),
-                borderRadius: "12px",
-                // dashed inside border
-                border: "2px dashed black",
-                zIndex: 1,
-                overflow: "hidden",
-                padding: 0,
-                margin: 0,
-            })}
-        >
+        <>
             <div
                 className={css({
-                    position: "relative",
-                    display: "flex",
-                    justifyContent: "left",
-                    alignItems: "left",
-                    height: "100%",
-                    width: "100%",
+                    position: "absolute",
+                    top: `${layout.top}px`,
+                    left: `${layout.left}px`,
+                    width: `${layout.width}px`,
+                    height: `${layout.height}px`,
+                    backgroundColor: makeHexTransparent(props.event.color, 0.5),
+                    borderRadius: "12px",
+                    // dashed inside border
+                    border: "2px dashed black",
+                    zIndex: 1,
+                    overflow: "hidden",
+                    padding: 0,
+                    margin: 0,
                 })}
+                onClick={() => {
+                    setPopoverOpen((prev) => !prev);
+                }}
             >
-                <EventDisplay event={props.event} />
+                <div
+                    className={css({
+                        position: "relative",
+                        display: "flex",
+                        justifyContent: "left",
+                        alignItems: "left",
+                        height: "100%",
+                        width: "100%",
+                    })}
+                >
+                    <EventDisplay event={props.event} />
+                </div>
             </div>
-        </div>
+        </>
     );
 };
 
@@ -266,13 +279,16 @@ const CalendarButtonRow = (props: {
                 display: "flex",
                 flexDirection: "row",
                 justifyContent: "space-between",
-                backgroundColor: "white",
-                paddingTop: "5px",
                 width: "100%",
-                margin: 0,
+                padding: "10px",
+
+                backgroundColor: "rgba(255, 255, 255, 0.5)",
+                backdropFilter: "blur(10px)",
+                borderRadius: "10px",
+                boxShadow: "0 4px 8px 0 rgba(0, 0, 0, 0.2)",
             })}
         >
-            <Button kind="secondary" onClick={props.onExport}>
+            <Button kind="tertiary" onClick={props.onExport}>
                 Export to ICS
             </Button>
             <Row
@@ -295,7 +311,7 @@ const CalendarButtonRow = (props: {
                     <ChevronRight size={25} />
                 </Button>
             </Row>
-            <Button kind="secondary">Export to Carleton Central</Button>
+            <Button kind="tertiary">Export to Carleton Central</Button>
         </div>
     );
 };
@@ -339,47 +355,58 @@ export const Calendar = observer((props: CalendarProps) => {
     const appManager = useAppManager();
 
     return (
-        <div
-            className={css({
-                display: "flex",
-                flexDirection: "column",
-                marginRight: "50px",
-            })}
+        <Column
+            $style={{
+                gap: "10px",
+            }}
         >
             <div
                 className={css({
                     display: "flex",
                     flexDirection: "column",
-                    position: "relative",
-                    userSelect: "none",
+                    marginRight: "50px",
+                    gap: "10px",
                 })}
             >
-                <CalendarGrid />
-                <CalendarEventsOverlay events={props.events} />
+                <Row>
+                    <div
+                        className={css({
+                            display: "flex",
+                            flexDirection: "column",
+                            position: "relative",
+                            userSelect: "none",
+                        })}
+                    >
+                        <CalendarGrid />
+                        <CalendarEventsOverlay events={props.events} />
+                    </div>
+                </Row>
+                <Row>
+                    <CalendarButtonRow
+                        onExport={() => {
+                            const icsString = exportEventsToICS(props.events);
+                            const blob = new Blob([icsString], {
+                                type: "text/calendar",
+                            });
+                            // trigger download
+                            const link = document.createElement("a");
+                            link.href = window.URL.createObjectURL(blob);
+                            const currentDateStr = new Date().toISOString();
+                            const name = `Carleton-Schedule-(${appManager.selectedTerm})-${currentDateStr}.ics`;
+                            link.download = name;
+                            link.click();
+                        }}
+                        onNextPage={() => {
+                            appManager.nextSchedule();
+                        }}
+                        onPrevPage={() => {
+                            appManager.previousSchedule();
+                        }}
+                        hasPrev={appManager.hasPreviousSchedule}
+                        hasNext={appManager.hasNextSchedule}
+                    />
+                </Row>
             </div>
-            <CalendarButtonRow
-                onExport={() => {
-                    const icsString = exportEventsToICS(props.events);
-                    const blob = new Blob([icsString], {
-                        type: "text/calendar",
-                    });
-                    // trigger download
-                    const link = document.createElement("a");
-                    link.href = window.URL.createObjectURL(blob);
-                    const currentDateStr = new Date().toISOString();
-                    const name = `Carleton-Schedule-(${appManager.selectedTerm})-${currentDateStr}.ics`;
-                    link.download = name;
-                    link.click();
-                }}
-                onNextPage={() => {
-                    appManager.nextSchedule();
-                }}
-                onPrevPage={() => {
-                    appManager.previousSchedule();
-                }}
-                hasPrev={appManager.hasPreviousSchedule}
-                hasNext={appManager.hasNextSchedule}
-            />
-        </div>
+        </Column>
     );
 });

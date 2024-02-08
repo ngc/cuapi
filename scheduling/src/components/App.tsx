@@ -29,21 +29,23 @@ export const App = observer(() => {
                     $style={{
                         alignItems: "center",
                         justifyContent: "space-between",
+                        width: "100%",
+                        paddingLeft: "10px",
                     }}
                 >
-                    <h1
-                        className={css({
-                            textAlign: "center",
-                            width: "90%",
-                            marginLeft: "10%",
-                        })}
-                    >
-                        cuScheduling
-                    </h1>
+                    <Row>
+                        <h1
+                            className={css({
+                                textAlign: "center",
+                            })}
+                        >
+                            cuScheduling
+                        </h1>
+                    </Row>
                     <div
                         className={css({
                             width: "10%",
-                            paddingRight: "50px",
+                            paddingRight: "60px",
                             display: "flex",
                             justifyContent: "center",
                             alignItems: "center",
@@ -76,28 +78,35 @@ export const App = observer(() => {
                         />
                     </div>
                 </Row>
-                <Row>
-                    <Column
-                        $style={{
-                            width: "50%",
-                            height: "100%",
-                            flex: 1,
-                        }}
-                    >
-                        <CourseSelectionList
-                            onClickAddCourse={() => {
-                                setIsOpen(true);
+
+                <Column
+                    $style={{
+                        justifyContent: "center",
+                    }}
+                >
+                    <Row>
+                        <Column
+                            $style={{
+                                width: "50%",
+                                height: "100%",
+                                flex: 1,
                             }}
-                        />
-                    </Column>
-                    <Column
-                        $style={{
-                            flex: 8,
-                        }}
-                    >
-                        <Calendar events={appManager.toEvents()} />
-                    </Column>
-                </Row>
+                        >
+                            <CourseSelectionList
+                                onClickAddCourse={() => {
+                                    setIsOpen(true);
+                                }}
+                            />
+                        </Column>
+                        <Column
+                            $style={{
+                                flex: 8,
+                            }}
+                        >
+                            <Calendar events={appManager.toEvents()} />
+                        </Column>
+                    </Row>
+                </Column>
                 <Row
                     $style={{
                         position: "fixed",
