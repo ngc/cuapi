@@ -146,8 +146,6 @@ class CourseScraper:
             EC.element_to_be_clickable((By.XPATH, f"//option[@value='{subject}']"))
         )
 
-        print(subject_option)
-
         # scroll inside sel_subj till subject_option is visible
         self.driver.execute_script("arguments[0].scrollIntoView();", subject_option)
         # wait for 1 second
@@ -167,7 +165,6 @@ class CourseScraper:
             "selected"
         ) or all_subjects_option.get_attribute("selected"):
             sel_subj.send_keys("\ue015")
-            time.sleep(0.1)
 
         # find an input with the title="Search for courses based on my criteria"
         # click it
@@ -186,11 +183,10 @@ class CourseScraper:
 
         courses = []
 
-        for course in crn_links[:10]:
+        for course in crn_links:
             try:
                 courses.append(self.get_course_data(course))
             except Exception as e:
-                print(e)
                 print(f"Failed to get course data for {course}")
                 continue
 
@@ -216,6 +212,7 @@ class CourseScraper:
             By.XPATH, "//select[@name='sel_subj']"
         ).get_attribute("innerHTML")
         subjects = get_subjects(subjects_list_html)
+
         return subjects
 
     def get_terms(self):
@@ -245,7 +242,15 @@ class CourseScraper:
 
 def main():
     scraper = CourseScraper()
-    scraper.scrape()
+    terms = scraper.get_terms()
+    subjects = scraper.get_subjects()
+    term = terms[0]
+    subject = "COMP"
+    courses = scraper.search_by_subject(subject, term)
+    print(courses)
+    with open("courses.json", "w") as f:
+        json.dump(courses, f, indent=4)
+        f.close()
 
 
 if __name__ == "__main__":

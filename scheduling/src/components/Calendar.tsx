@@ -6,6 +6,9 @@ import { Button } from "baseui/button";
 import { exportEventsToICS } from "../api/icsGenerator";
 import { observer } from "mobx-react-lite";
 import { useAppManager } from "../main";
+import { toaster } from "baseui/toast";
+import { Row } from "./util";
+import { ChevronLeft, ChevronRight } from "baseui/icon";
 
 /**
  * The CalendarTime interface is used to represent a time in the calendar.
@@ -91,23 +94,9 @@ const CalendarGrid = observer(() => {
                 <td>Thursday</td>
                 <td>Friday</td>
             </tr>
-            {hours.map((hour, index) => {
-                const hourNumber = index + 8;
-
+            {hours.map((hour) => {
                 return (
-                    <tr
-                        className={css({
-                            backgroundColor: appManager.isHourUnwanted(
-                                hourNumber
-                            )
-                                ? "rgba(255, 0, 0, 0.5)"
-                                : "white",
-                        })}
-                        onClick={() => {
-                            console.log();
-                            appManager.toggleHour(hourNumber);
-                        }}
-                    >
+                    <tr>
                         <td className={"time-td"}>{hour}</td>
                         <td></td>
                         <td></td>
@@ -120,6 +109,13 @@ const CalendarGrid = observer(() => {
         </table>
     );
 });
+
+const makeHexTransparent = (hex: string, opacity: number) => {
+    const r = parseInt(hex.slice(1, 3), 16);
+    const g = parseInt(hex.slice(3, 5), 16);
+    const b = parseInt(hex.slice(5, 7), 16);
+    return `rgba(${r}, ${g}, ${b}, ${opacity})`;
+};
 
 const EventPositioner = (props: {
     event: CalendarEvent;
@@ -194,7 +190,7 @@ const EventPositioner = (props: {
                 left: `${layout.left}px`,
                 width: `${layout.width}px`,
                 height: `${layout.height}px`,
-                backgroundColor: "rgba(255, 0, 0, 0.5)",
+                backgroundColor: makeHexTransparent(props.event.color, 0.5),
                 borderRadius: "12px",
                 // dashed inside border
                 border: "2px dashed black",
@@ -260,6 +256,8 @@ const CalendarButtonRow = (props: {
     onExport: () => void;
     onNextPage: () => void;
     onPrevPage: () => void;
+    hasPrev: boolean;
+    hasNext: boolean;
 }) => {
     const [css, $theme] = useStyletron();
     return (
@@ -274,11 +272,30 @@ const CalendarButtonRow = (props: {
                 margin: 0,
             })}
         >
-            <Button onClick={props.onExport}>Export to ICS</Button>
-            <div>
-                <Button onClick={props.onPrevPage}>Previous</Button>
-                <Button onClick={props.onNextPage}>Next</Button>
-            </div>
+            <Button kind="secondary" onClick={props.onExport}>
+                Export to ICS
+            </Button>
+            <Row
+                $style={{
+                    gap: "5px",
+                }}
+            >
+                <Button
+                    kind="tertiary"
+                    disabled={!props.hasPrev}
+                    onClick={props.onPrevPage}
+                >
+                    <ChevronLeft size={25} />
+                </Button>
+                <Button
+                    kind="tertiary"
+                    disabled={!props.hasNext}
+                    onClick={props.onNextPage}
+                >
+                    <ChevronRight size={25} />
+                </Button>
+            </Row>
+            <Button kind="secondary">Export to Carleton Central</Button>
         </div>
     );
 };
@@ -326,6 +343,7 @@ export const Calendar = observer((props: CalendarProps) => {
             className={css({
                 display: "flex",
                 flexDirection: "column",
+                marginRight: "50px",
             })}
         >
             <div
@@ -348,7 +366,9 @@ export const Calendar = observer((props: CalendarProps) => {
                     // trigger download
                     const link = document.createElement("a");
                     link.href = window.URL.createObjectURL(blob);
-                    link.download = "schedule.ics";
+                    const currentDateStr = new Date().toISOString();
+                    const name = `Carleton-Schedule-(${appManager.selectedTerm})-${currentDateStr}.ics`;
+                    link.download = name;
                     link.click();
                 }}
                 onNextPage={() => {
@@ -357,6 +377,8 @@ export const Calendar = observer((props: CalendarProps) => {
                 onPrevPage={() => {
                     appManager.previousSchedule();
                 }}
+                hasPrev={appManager.hasPreviousSchedule}
+                hasNext={appManager.hasNextSchedule}
             />
         </div>
     );

@@ -27,10 +27,19 @@ export const App = observer(() => {
             <Column $style={{ height: "100vh", width: "100vw" }}>
                 <Row
                     $style={{
+                        alignItems: "center",
                         justifyContent: "space-between",
                     }}
                 >
-                    <h1>cuScheduling</h1>
+                    <h1
+                        className={css({
+                            textAlign: "center",
+                            width: "90%",
+                            marginLeft: "10%",
+                        })}
+                    >
+                        cuScheduling
+                    </h1>
                     <div
                         className={css({
                             width: "10%",
@@ -41,6 +50,13 @@ export const App = observer(() => {
                         })}
                     >
                         <Select
+                            overrides={{
+                                Root: {
+                                    style: {
+                                        zIndex: 1000,
+                                    },
+                                },
+                            }}
                             searchable={false}
                             value={[
                                 {
@@ -81,6 +97,21 @@ export const App = observer(() => {
                     >
                         <Calendar events={appManager.toEvents()} />
                     </Column>
+                </Row>
+                <Row
+                    $style={{
+                        position: "fixed",
+                        bottom: 0,
+                        width: "100%",
+                        justifyContent: "center",
+                        marginBottom: "10px",
+                        userSelect: "none",
+                    }}
+                >
+                    <footer>
+                        Made with ❤️ by{" "}
+                        <a href="https://nathancoulas.com">Nathan Coulas</a>
+                    </footer>
                 </Row>
             </Column>
         </>

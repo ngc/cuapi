@@ -6,3 +6,4 @@ env/
 /.python-version
 .cuapi/
 jobs/
+.env

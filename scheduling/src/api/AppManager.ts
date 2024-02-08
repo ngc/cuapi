@@ -7,7 +7,14 @@ import {
 } from "./api";
 import { action } from "mobx";
 import { CalendarEvent } from "../components/Calendar";
-import { Schedule, getBestSchedules } from "./scheduling";
+import {
+    AvailableCourses,
+    CourseAndTutorial,
+    Schedule,
+    flattenSchedule,
+    getBestSchedules,
+} from "./scheduling";
+import { toaster } from "baseui/toast";
 
 export interface SectionInformation {
     section_type: string;
@@ -59,17 +66,54 @@ export const convert_term = (term: string) => {
     return "F";
 };
 
+const stringToColor = (str: string): string => {
+    // DJB2 hash function
+    let hash = 5381;
+    for (let i = 0; i < str.length; i++) {
+        const char = str.charCodeAt(i);
+        hash = (hash << 5) + hash + char;
+    }
+
+    // Ensure hash is positive
+    hash = Math.abs(hash);
+
+    // Extract RGB components using modular arithmetic
+    const red = (hash & 0xff0000) >> 16;
+    const green = (hash & 0x00ff00) >> 8;
+    const blue = hash & 0x0000ff;
+
+    // Convert to hex color
+    const hexColor = `#${red.toString(16).padStart(2, "0")}${green
+        .toString(16)
+        .padStart(2, "0")}${blue.toString(16).padStart(2, "0")}`;
+    return hexColor;
+};
+
+export interface SectionModel {
+    courses: CourseDetails[];
+    tutorials: CourseDetails[];
+}
+
 export const RelatedOffering = types
     .model({
         offering_name: types.string,
-        course_options: types.optional(
-            types.array(types.frozen<CourseDetails>()),
-            []
-        ),
+        section_models: types.array(types.frozen<SectionModel>()),
     })
-    .actions((self) => ({
-        setCourseOptions(options: CourseDetails[]) {
-            self.course_options.replace(options);
+    .views((self) => ({
+        get allPermutations(): CourseAndTutorial[] {
+            // for each section model, add a CourseAndTutorial to the list of permutations for each course
+            let permutations: CourseAndTutorial[] = [];
+            for (let sectionModel of self.section_models) {
+                for (let course of sectionModel.courses) {
+                    for (let tutorial of sectionModel.tutorials) {
+                        permutations.push({ course, tutorial });
+                    }
+                    if (sectionModel.tutorials.length === 0) {
+                        permutations.push({ course, tutorial: undefined });
+                    }
+                }
+            }
+            return permutations;
         },
     }));
 
@@ -84,21 +128,21 @@ export const AppManager = types
         unwantedHours: types.optional(types.array(types.number), []), // 0-23
     })
     .views((self) => ({
-        get availableCourses(): { [key: string]: CourseDetails[] } {
-            let courses: { [key: string]: CourseDetails[] } = {};
+        get availableCourses(): AvailableCourses {
+            let availableCourses: AvailableCourses = {};
             for (let offering of self.selectedOfferings) {
-                courses[offering.offering_name] = offering.course_options;
+                availableCourses[offering.offering_name] =
+                    offering.allPermutations;
             }
-            return courses;
+            return availableCourses;
         },
     }))
     .views((self) => ({
         get bestSchedules() {
             const schedules: Schedule[] = getBestSchedules(
                 self.availableCourses,
-                self.unwantedHours,
                 100,
-                1000,
+                100,
                 10
             );
             // purge all duplicate schedules
@@ -111,6 +155,7 @@ export const AppManager = types
         get selectedCourses() {
             const bestSchedules = self.bestSchedules;
             if (bestSchedules.length === 0) {
+                toaster.negative("No schedules found", {});
                 return [];
             }
             const schedule: Schedule =
@@ -118,7 +163,7 @@ export const AppManager = types
 
             console.log("$$$ schedule", schedule);
 
-            return Object.values(schedule);
+            return flattenSchedule(schedule);
         },
     }))
 
@@ -145,20 +190,6 @@ export const AppManager = types
         },
     }))
     .views((self) => ({
-        /*
-      export interface CalendarEvent {
-    startTime: CalendarTime,
-    endTime: CalendarTime,
-    day: number, (0-4) for Monday-Friday
-    title: string,
-    body: React.ReactNode,
-    onClick: () => void,
-    onHover: () => void,
-    onLeave: () => void,
-    color: string,
-  }
-  */
-
         /**
          * Convert the selected courses into a list of CalendarEvents
          */
@@ -186,6 +217,8 @@ export const AppManager = types
                             let endHour = parseInt(end[0]);
                             let endMinute = parseInt(end[1]);
 
+                            const subject = course.subject_code.split(" ")[0];
+
                             events.push({
                                 startTime: {
                                     hour: startHour,
@@ -198,7 +231,7 @@ export const AppManager = types
                                 onClick: () => {},
                                 onHover: () => {},
                                 onLeave: () => {},
-                                color: "#FF0000",
+                                color: stringToColor(subject),
                                 course: course,
                                 meeting: meeting,
                             });
@@ -257,18 +290,14 @@ export const AppManager = types
             if (self.currentScheduleIndex == 0) return;
             self.currentScheduleIndex--;
         },
-        toggleHour(hour: number) {
-            if (self.unwantedHours.includes(hour)) {
-                self.unwantedHours.replace(
-                    self.unwantedHours.filter((h) => h !== hour)
-                );
-            } else {
-                self.unwantedHours.push(hour);
-            }
+    }))
+    .views((self) => ({
+        get hasPreviousSchedule() {
+            return self.currentScheduleIndex > 0;
         },
     }))
     .views((self) => ({
-        isHourUnwanted(hour: number) {
-            return self.unwantedHours.includes(hour);
+        get hasNextSchedule() {
+            return self.currentScheduleIndex < self.bestSchedules.length - 1;
         },
     }));

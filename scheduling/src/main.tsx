@@ -7,6 +7,7 @@ import { LightTheme, BaseProvider } from "baseui";
 import { Instance, onSnapshot } from "mobx-state-tree";
 import { AppManager } from "./api/AppManager.ts";
 import { observer } from "mobx-react-lite";
+import { ToasterContainer } from "baseui/toast/toaster";
 
 const engine = new Styletron();
 interface AppManagerProviderContext {
@@ -63,7 +64,12 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
         <StyletronProvider value={engine}>
             <BaseProvider theme={LightTheme}>
                 <AppManagerProvider appManager={loadOrCreateAppManager()}>
-                    <App />
+                    <ToasterContainer
+                        placement="bottomRight"
+                        autoHideDuration={3000}
+                    >
+                        <App />
+                    </ToasterContainer>
                 </AppManagerProvider>
             </BaseProvider>
         </StyletronProvider>
