@@ -7,3 +7,4 @@ env/
 .cuapi/
 jobs/
 .env
+node_modules

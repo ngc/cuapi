@@ -154,7 +154,10 @@ export const AppManager = types
     .views((self) => ({
         get selectedCourses() {
             const bestSchedules = self.bestSchedules;
-            if (bestSchedules.length === 0) {
+            if (
+                self.selectedOfferings.length !== 0 &&
+                bestSchedules.length === 0
+            ) {
                 toaster.negative("No schedules found", {});
                 return [];
             }
