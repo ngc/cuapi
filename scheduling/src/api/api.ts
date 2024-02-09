@@ -39,7 +39,7 @@ const IS_DEV = false && window.location.hostname === "localhost";
 
 const API_URL = IS_DEV
     ? "http://localhost:3969/"
-    : "http://cuapi.nathancoulas.com/";
+    : "https://cuapi.nathancoulas.com/";
 
 /*
 api.add_resource(Course, "/course/<string:term>/<string:crn>")
