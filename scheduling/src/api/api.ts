@@ -35,7 +35,11 @@ export interface CourseDetails {
 
 type CourseOfferingName = string;
 
-const API_URL = process.env.DEV_API_URL || "http://cuapi.nathancoulas.com/";
+const IS_DEV = false && window.location.hostname === "localhost";
+
+const API_URL = IS_DEV
+    ? "http://localhost:3969/"
+    : "http://cuapi.nathancoulas.com/";
 
 /*
 api.add_resource(Course, "/course/<string:term>/<string:crn>")
