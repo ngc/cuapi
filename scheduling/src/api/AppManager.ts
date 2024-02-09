@@ -5,7 +5,7 @@ import {
     offeringSearch,
     searchForOfferings,
 } from "./api";
-import { action } from "mobx";
+
 import { CalendarEvent } from "../components/Calendar";
 import {
     AvailableCourses,

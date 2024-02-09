@@ -94,7 +94,7 @@ const loadOrCreateAppManager = () => {
 };
 
 export const Background = () => {
-    const [css, $theme] = useStyletron();
+    const [css, _$theme] = useStyletron();
 
     return (
         <div
@@ -132,7 +132,7 @@ export const ScreenWidthProtector = (props: {
     minWidth: number;
 }) => {
     // if the screen is too narrow, show a modal that says "this app is not optimized for mobile"
-    const [css, $theme] = useStyletron();
+    const [css, _$theme] = useStyletron();
     const [isOpen, setIsOpen] = React.useState(false);
     useEffect(() => {
         if (window.innerWidth < props.minWidth) {

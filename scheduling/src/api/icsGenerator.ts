@@ -25,7 +25,7 @@ export const getFirstDayOfClass = (event: CalendarEvent): Date => {
     const days = meeting.days;
     const period = meeting.meeting_date;
 
-    const [start, end] = convertTermToDates(period);
+    const [start, _end] = convertTermToDates(period);
     let current = start;
     let found = false;
     while (!found) {
@@ -46,7 +46,7 @@ export const getLastDayOfClass = (event: CalendarEvent): Date => {
 
     const period = meeting.meeting_date;
 
-    const [start, end] = convertTermToDates(period);
+    const [_start, end] = convertTermToDates(period);
     let current = end;
     let found = false;
     while (!found) {

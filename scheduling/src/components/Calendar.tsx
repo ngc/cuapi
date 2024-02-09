@@ -6,10 +6,8 @@ import { Button } from "baseui/button";
 import { exportEventsToICS } from "../api/icsGenerator";
 import { observer } from "mobx-react-lite";
 import { useAppManager } from "../main";
-import { toaster } from "baseui/toast";
 import { Column, Row } from "./util";
 import { ChevronLeft, ChevronRight } from "baseui/icon";
-import { Divider, Popover } from "@mui/material";
 import { Modal } from "baseui/modal";
 
 /**
@@ -67,8 +65,7 @@ const CalendarGrid = observer(() => {
     Calendar grid will be a 5x13 grid that will be used to display the events.
     */
 
-    const appManager = useAppManager();
-    const [css, $theme] = useStyletron();
+    const [css, _$theme] = useStyletron();
 
     const hours = [
         "8 am",
@@ -134,7 +131,7 @@ const EventPositioner = (props: { event: CalendarEvent }) => {
     // the row will be the start time
     // the height will be the end time - start time
 
-    const [css, $theme] = useStyletron();
+    const [css, _$theme] = useStyletron();
     const [layout, setLayout] = useState({
         top: 0,
         left: 0,
@@ -161,10 +158,10 @@ const EventPositioner = (props: { event: CalendarEvent }) => {
             // we will use this to calculate contextual size
             // the width of this cell is the same as the width of every day
             // the height of this cell will be the same as the height of every hour
-            const cellHeight = timeHeaderCell?.clientHeight + 1; // we add 1 to account for the border
-            const dayWidth = mondayHeaderCell?.clientWidth + 1; // we add 1 to account for the border
+            const cellHeight = timeHeaderCell?.clientHeight! + 1; // we add 1 to account for the border
+            const dayWidth = mondayHeaderCell?.clientWidth! + 1; // we add 1 to account for the border
 
-            let leftPos = timeHeaderCell?.clientWidth + 2; // start by offsetting
+            let leftPos = timeHeaderCell?.clientWidth! + 2; // start by offsetting
             let topPos =
                 startHour * cellHeight! + (startMinute / 60) * cellHeight!;
             let width = dayWidth - 2; // we subtract 2 to account for the border
@@ -230,7 +227,7 @@ const EventPositioner = (props: { event: CalendarEvent }) => {
 };
 
 const EventDisplay = (props: { event: CalendarEvent; height: number }) => {
-    const [css, $theme] = useStyletron();
+    const [css, _$theme] = useStyletron();
     // grid that has three rows or three columns depending on the container size
     return (
         <div
@@ -283,7 +280,7 @@ const CalendarButtonRow = (props: {
     hasNext: boolean;
     onCarletonCentral: () => void;
 }) => {
-    const [css, $theme] = useStyletron();
+    const [css, _$theme] = useStyletron();
     return (
         <div
             className={css({
@@ -330,7 +327,7 @@ const CalendarButtonRow = (props: {
 };
 
 const CalendarEventsOverlay = (props: { events: CalendarEvent[] }) => {
-    const [css, $theme] = useStyletron();
+    const [css, _$theme] = useStyletron();
 
     return (
         <div
@@ -360,7 +357,7 @@ const CalendarEventsOverlay = (props: { events: CalendarEvent[] }) => {
  */
 export const Calendar = observer((props: CalendarProps) => {
     // we want a div that will contain the grid and have the event overlay displayed directly on top of it
-    const [css, $theme] = useStyletron();
+    const [css, _$theme] = useStyletron();
     const appManager = useAppManager();
     const [tutorialModalContent, setTutorialModalContent] =
         useState<React.ReactNode | null>(null);

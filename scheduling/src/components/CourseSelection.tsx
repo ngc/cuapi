@@ -7,14 +7,12 @@ import { CourseDetails, offeringSearch } from "../api/api";
 import { useAppManager } from "../main";
 import { Column, Row } from "./util";
 import { Button } from "baseui/button";
-import { Instance, getSnapshot } from "mobx-state-tree";
+import { Instance } from "mobx-state-tree";
 import { RelatedOffering, SectionModel, convert_term } from "../api/AppManager";
 import { SegmentedControl, Segment } from "baseui/segmented-control";
 import { Tooltip } from "@mui/material";
-import { motion } from "framer-motion";
 
 export const AddCourseButton = (props: { onClick: () => void }) => {
-    const [css, $theme] = useStyletron();
     return (
         <Button
             kind="secondary"
@@ -34,7 +32,7 @@ export const AddCourseButton = (props: { onClick: () => void }) => {
 
 export const SelectedCourseItem = observer(
     (props: { course: Instance<typeof RelatedOffering> }) => {
-        const [css, $theme] = useStyletron();
+        const [css, _$theme] = useStyletron();
         const appManager = useAppManager();
 
         return (
@@ -64,7 +62,7 @@ export const SelectedCourseItem = observer(
 
 export const CourseSelectionList = observer(
     (props: { onClickAddCourse: () => void }) => {
-        const [css, $theme] = useStyletron();
+        const [_css, _$theme] = useStyletron();
         const appManager = useAppManager();
 
         return (
@@ -113,17 +111,11 @@ export const CourseSelectionList = observer(
     }
 );
 
-enum SearchType {
-    SUBJECT_CODE,
-    CRN,
-    COURSE_CODE,
-}
-
 export const SearchResultItem = (props: {
     course: string;
     closeModal: () => void;
 }) => {
-    const [css, $theme] = useStyletron();
+    const [css, _$theme] = useStyletron();
     const appManager = useAppManager();
     const course = props.course;
 
@@ -220,7 +212,6 @@ export const CourseSelectionModal = (props: {
     const [searchQuery, setSearchQuery] = useState("");
     const appManager = useAppManager();
     const [activeTab, setActiveTab] = useState(0);
-    const [css, $theme] = useStyletron();
 
     useEffect(() => {
         const fetchData = async () => {
