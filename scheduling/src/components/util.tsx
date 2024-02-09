@@ -5,7 +5,7 @@ export const Column = (props: {
     children: React.ReactNode;
     $style?: StyleObject;
 }) => {
-    const [css, $theme] = useStyletron();
+    const [css, _$theme] = useStyletron();
     return (
         <div
             className={css({
@@ -23,7 +23,7 @@ export const Row = (props: {
     children: React.ReactNode;
     $style?: StyleObject;
 }) => {
-    const [css, $theme] = useStyletron();
+    const [css, _$theme] = useStyletron();
     return (
         <div
             className={css({
