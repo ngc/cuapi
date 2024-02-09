@@ -141,8 +141,8 @@ export const AppManager = types
         get bestSchedules() {
             const schedules: Schedule[] = getBestSchedules(
                 self.availableCourses,
-                10,
-                500,
+                100,
+                100,
                 10
             );
             // purge all duplicate schedules
@@ -160,8 +160,6 @@ export const AppManager = types
             }
             const schedule: Schedule =
                 bestSchedules[self.currentScheduleIndex] || bestSchedules[0];
-
-            console.log("$$$ schedule", schedule);
 
             return flattenSchedule(schedule);
         },
@@ -183,9 +181,11 @@ export const AppManager = types
             const index = self.selectedOfferings.findIndex(
                 (o) => o.offering_name === offering.offering_name
             );
+
             if (index !== -1) {
                 self.selectedOfferings.splice(index, 1);
             }
+
             self.currentScheduleIndex = 0;
         },
     }))
@@ -203,10 +203,8 @@ export const AppManager = types
                     return;
                 }
                 for (let meeting of course.meeting_details) {
-                    console.log("meeting", meeting);
                     for (let day of meeting.days) {
                         let dayIndex = days.indexOf(day);
-                        console.log("dayIndex", dayIndex);
                         if (dayIndex !== -1) {
                             // meeting time is in the format "HH:MM - HH:MM"
                             let times = meeting.time.split(" - ");
@@ -243,8 +241,6 @@ export const AppManager = types
             for (let course of self.selectedCourses) {
                 courseDetailsToEvent(course);
             }
-
-            console.log("events $$$", events);
 
             return events;
         },

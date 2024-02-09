@@ -84,7 +84,7 @@ export const CourseSelectionList = observer(
                 }}
             >
                 <Row>
-                    <h3>Selected Courses</h3>
+                    <h3>Courses</h3>
                 </Row>
 
                 <Column
@@ -96,12 +96,14 @@ export const CourseSelectionList = observer(
                         return (
                             <Tooltip title={"Click to remove"}>
                                 <Row>
-                                    {/* <SelectedCourseItem course={course} /> */}
                                     <SelectedCourseItem course={course} />
                                 </Row>
                             </Tooltip>
                         );
                     })}
+                    {appManager.selectedOfferings.length === 0 && (
+                        <p>No courses selected</p>
+                    )}
                 </Column>
                 <Row>
                     <AddCourseButton onClick={props.onClickAddCourse} />
@@ -117,109 +119,99 @@ enum SearchType {
     COURSE_CODE,
 }
 
-export const SearchResultItem = observer(
-    (props: { course: string; closeModal: () => void }) => {
-        const [css, $theme] = useStyletron();
-        const appManager = useAppManager();
-        const course = props.course;
+export const SearchResultItem = (props: {
+    course: string;
+    closeModal: () => void;
+}) => {
+    const [css, $theme] = useStyletron();
+    const appManager = useAppManager();
+    const course = props.course;
 
-        return (
-            <motion.button
-                whileHover={{ scale: 1.1 }}
-                whileTap={{ scale: 0.4 }}
-                className={css({
-                    all: "unset",
-                    width: "90%",
-                })}
-            >
-                <div
-                    className={css({
-                        height: "1em",
-                        border: "1px dashed grey",
-                        padding: "5px",
-                        borderRadius: "5px",
-                        transition: "0.2s",
-                        ":hover": {
-                            backgroundColor: "rgba(0, 0, 0, 0.1)",
-                            cursor: "pointer",
-                        },
-                    })}
-                    onClick={async () => {
-                        const [subject, code] = course.split(" ");
+    return (
+        <div
+            onClick={async () => {
+                const [subject, code] = course.split(" ");
 
-                        const options = await offeringSearch(
-                            convert_term(appManager.selectedTerm),
-                            subject,
-                            code,
-                            1
-                        );
+                const options = await offeringSearch(
+                    convert_term(appManager.selectedTerm),
+                    subject,
+                    code,
+                    1
+                );
 
-                        let courses = [];
-                        let tutorials = [];
-                        for (const option of options) {
-                            if (option.schedule_type === "Lecture") {
-                                courses.push(option);
-                            } else {
-                                tutorials.push(option);
-                            }
-                        }
+                let courses = [];
+                let tutorials = [];
+                for (const option of options) {
+                    if (option.schedule_type === "Lecture") {
+                        courses.push(option);
+                    } else {
+                        tutorials.push(option);
+                    }
+                }
 
-                        // print all the courses and tutorials
-                        console.log(courses);
-                        console.log(tutorials);
+                const sectionMap: {
+                    [section: string]: {
+                        courses: CourseDetails[];
+                        tutorials: CourseDetails[];
+                    };
+                } = {};
+                // the way we determine a section is by splitting the subject code by space
+                // the section is the first character of the third part of the split
+                // if there is no third part, then the section is "$"
+                for (const course of courses) {
+                    const section =
+                        course.subject_code.split(" ")[2]?.[0] ?? "$";
+                    if (section in sectionMap) {
+                        sectionMap[section].courses.push(course);
+                    } else {
+                        sectionMap[section] = {
+                            courses: [course],
+                            tutorials: [],
+                        };
+                    }
+                }
 
-                        const sectionMap: {
-                            [section: string]: {
-                                courses: CourseDetails[];
-                                tutorials: CourseDetails[];
-                            };
-                        } = {};
-                        // the way we determine a section is by splitting the subject code by space
-                        // the section is the first character of the third part of the split
-                        // if there is no third part, then the section is "$"
-                        for (const course of courses) {
-                            const section =
-                                course.subject_code.split(" ")[2]?.[0] ?? "$";
-                            if (section in sectionMap) {
-                                sectionMap[section].courses.push(course);
-                            } else {
-                                sectionMap[section] = {
-                                    courses: [course],
-                                    tutorials: [],
-                                };
-                            }
-                        }
+                // now we need to add the tutorials to the section map
+                for (const tutorial of tutorials) {
+                    const section =
+                        tutorial.subject_code.split(" ")[2]?.[0] ?? "$";
+                    if (section in sectionMap) {
+                        sectionMap[section].tutorials.push(tutorial);
+                    } else {
+                        sectionMap[section] = {
+                            courses: [],
+                            tutorials: [tutorial],
+                        };
+                    }
+                }
 
-                        // now we need to add the tutorials to the section map
-                        for (const tutorial of tutorials) {
-                            const section =
-                                tutorial.subject_code.split(" ")[2]?.[0] ?? "$";
-                            if (section in sectionMap) {
-                                sectionMap[section].tutorials.push(tutorial);
-                            } else {
-                                sectionMap[section] = {
-                                    courses: [],
-                                    tutorials: [tutorial],
-                                };
-                            }
-                        }
+                const sectionModels: SectionModel[] = Object.values(sectionMap);
 
-                        const sectionModels: SectionModel[] =
-                            Object.values(sectionMap);
+                props.closeModal();
 
-                        appManager.addOffering({
-                            offering_name: course,
-                            section_models: sectionModels,
-                        });
-                        props.closeModal();
-                    }}
-                >
-                    {props.course}
-                </div>
-            </motion.button>
-        );
-    }
-);
+                appManager.addOffering({
+                    offering_name: course,
+                    section_models: sectionModels,
+                });
+            }}
+            className={css({
+                height: "1em",
+                border: "1px dashed grey",
+                padding: "5px",
+                borderRadius: "5px",
+                transition: "0.2s",
+                width: "90%",
+                ":hover": {
+                    backgroundColor: "rgba(0, 0, 0, 0.1)",
+                    cursor: "pointer",
+                    scale: 1.1,
+                },
+            })}
+        >
+            {props.course}
+        </div>
+    );
+};
 
 export const CourseSelectionModal = (props: {
     isOpen: boolean;
@@ -237,7 +229,6 @@ export const CourseSelectionModal = (props: {
                 searchQuery
             );
             setSearchResults(results);
-            console.log(results);
         };
         fetchData();
     }, [searchQuery]);
@@ -248,6 +239,11 @@ export const CourseSelectionModal = (props: {
                 Root: {
                     style: {
                         zIndex: 1000,
+                    },
+                },
+                DialogContainer: {
+                    style: {
+                        backdropFilter: "blur(10px)",
                     },
                 },
             }}

@@ -9,7 +9,8 @@ import { useAppManager } from "../main";
 import { toaster } from "baseui/toast";
 import { Column, Row } from "./util";
 import { ChevronLeft, ChevronRight } from "baseui/icon";
-import { Popover } from "@mui/material";
+import { Divider, Popover } from "@mui/material";
+import { Modal } from "baseui/modal";
 
 /**
  * The CalendarTime interface is used to represent a time in the calendar.
@@ -83,6 +84,7 @@ const CalendarGrid = observer(() => {
         "6 pm",
         "7 pm",
         "8 pm",
+        "9 pm",
     ];
 
     return (
@@ -125,10 +127,7 @@ const makeHexTransparent = (hex: string, opacity: number) => {
     return `rgba(${r}, ${g}, ${b}, ${opacity})`;
 };
 
-const EventPositioner = (props: {
-    event: CalendarEvent;
-    children: React.ReactNode;
-}) => {
+const EventPositioner = (props: { event: CalendarEvent }) => {
     // This div will be used to position the event on the grid
     // we use the start and end times to calculate the position of the event
     // firstly, the column will be the day of the week
@@ -199,18 +198,19 @@ const EventPositioner = (props: {
                     left: `${layout.left}px`,
                     width: `${layout.width}px`,
                     height: `${layout.height}px`,
-                    backgroundColor: makeHexTransparent(props.event.color, 0.5),
                     borderRadius: "12px",
                     // dashed inside border
                     border: "2px dashed black",
-                    zIndex: 1,
+                    zIndex: 10,
                     overflow: "hidden",
                     padding: 0,
                     margin: 0,
+
+                    // backdropFilter: "blur(10px)",
+                    boxShadow: "0 4px 8px 0 rgba(0, 0, 0, 0.2)",
+                    backgroundColor: makeHexTransparent(props.event.color, 0.5),
+                    transition: "all 0.2s",
                 })}
-                onClick={() => {
-                    setPopoverOpen((prev) => !prev);
-                }}
             >
                 <div
                     className={css({
@@ -222,14 +222,14 @@ const EventPositioner = (props: {
                         width: "100%",
                     })}
                 >
-                    <EventDisplay event={props.event} />
+                    <EventDisplay event={props.event} height={layout.height} />
                 </div>
             </div>
         </>
     );
 };
 
-const EventDisplay = (props: { event: CalendarEvent }) => {
+const EventDisplay = (props: { event: CalendarEvent; height: number }) => {
     const [css, $theme] = useStyletron();
     // grid that has three rows or three columns depending on the container size
     return (
@@ -256,10 +256,20 @@ const EventDisplay = (props: { event: CalendarEvent }) => {
             >
                 {props.event.title}
             </div>
-            <span>
-                <CalendarTime time={props.event.startTime} />
-                {" - "}
-                <CalendarTime time={props.event.endTime} />
+            <span
+                className={css({
+                    display: props.height < 40 ? "none" : "flex",
+                })}
+            >
+                <Row
+                    $style={{
+                        gap: "5px",
+                    }}
+                >
+                    <CalendarTime time={props.event.startTime} />
+                    {" - "}
+                    <CalendarTime time={props.event.endTime} />
+                </Row>
             </span>
         </div>
     );
@@ -271,6 +281,7 @@ const CalendarButtonRow = (props: {
     onPrevPage: () => void;
     hasPrev: boolean;
     hasNext: boolean;
+    onCarletonCentral: () => void;
 }) => {
     const [css, $theme] = useStyletron();
     return (
@@ -289,7 +300,7 @@ const CalendarButtonRow = (props: {
             })}
         >
             <Button kind="tertiary" onClick={props.onExport}>
-                Export to ICS
+                Export to Calendar
             </Button>
             <Row
                 $style={{
@@ -311,7 +322,9 @@ const CalendarButtonRow = (props: {
                     <ChevronRight size={25} />
                 </Button>
             </Row>
-            <Button kind="tertiary">Export to Carleton Central</Button>
+            <Button onClick={props.onCarletonCentral} kind="tertiary">
+                Export to Carleton Central
+            </Button>
         </div>
     );
 };
@@ -334,11 +347,7 @@ const CalendarEventsOverlay = (props: { events: CalendarEvent[] }) => {
             })}
         >
             {props.events.map((event) => {
-                return (
-                    <EventPositioner event={event}>
-                        <EventDisplay event={event} />
-                    </EventPositioner>
-                );
+                return <EventPositioner event={event} />;
             })}
         </div>
     );
@@ -353,60 +362,191 @@ export const Calendar = observer((props: CalendarProps) => {
     // we want a div that will contain the grid and have the event overlay displayed directly on top of it
     const [css, $theme] = useStyletron();
     const appManager = useAppManager();
+    const [tutorialModalContent, setTutorialModalContent] =
+        useState<React.ReactNode | null>(null);
 
     return (
-        <Column
-            $style={{
-                gap: "10px",
-            }}
-        >
-            <div
-                className={css({
-                    display: "flex",
-                    flexDirection: "column",
-                    marginRight: "50px",
-                    gap: "10px",
-                })}
+        <>
+            <Modal
+                isOpen={tutorialModalContent !== null}
+                onClose={() => setTutorialModalContent(null)}
+                overrides={{
+                    Root: {
+                        style: {
+                            zIndex: 1000,
+                        },
+                    },
+                    DialogContainer: {
+                        style: {
+                            backdropFilter: "blur(10px)",
+                        },
+                    },
+                }}
             >
-                <Row>
-                    <div
-                        className={css({
-                            display: "flex",
-                            flexDirection: "column",
-                            position: "relative",
-                            userSelect: "none",
-                        })}
-                    >
-                        <CalendarGrid />
-                        <CalendarEventsOverlay events={props.events} />
-                    </div>
-                </Row>
-                <Row>
-                    <CalendarButtonRow
-                        onExport={() => {
-                            const icsString = exportEventsToICS(props.events);
-                            const blob = new Blob([icsString], {
-                                type: "text/calendar",
-                            });
-                            // trigger download
-                            const link = document.createElement("a");
-                            link.href = window.URL.createObjectURL(blob);
-                            const currentDateStr = new Date().toISOString();
-                            const name = `Carleton-Schedule-(${appManager.selectedTerm})-${currentDateStr}.ics`;
-                            link.download = name;
-                            link.click();
-                        }}
-                        onNextPage={() => {
-                            appManager.nextSchedule();
-                        }}
-                        onPrevPage={() => {
-                            appManager.previousSchedule();
-                        }}
-                        hasPrev={appManager.hasPreviousSchedule}
-                        hasNext={appManager.hasNextSchedule}
-                    />
-                </Row>
-            </div>
-        </Column>
+                {tutorialModalContent}
+            </Modal>
+            <Column
+                $style={{
+                    gap: "10px",
+                }}
+            >
+                <div
+                    className={css({
+                        display: "flex",
+                        flexDirection: "column",
+                        marginRight: "50px",
+                        gap: "10px",
+                    })}
+                >
+                    <Row>
+                        <div
+                            className={css({
+                                display: "flex",
+                                flexDirection: "column",
+                                position: "relative",
+                                userSelect: "none",
+                            })}
+                        >
+                            <CalendarGrid />
+                            <CalendarEventsOverlay events={props.events} />
+                        </div>
+                    </Row>
+                    <Row>
+                        <CalendarButtonRow
+                            onExport={() => {
+                                const icsString = exportEventsToICS(
+                                    props.events
+                                );
+                                const blob = new Blob([icsString], {
+                                    type: "text/calendar",
+                                });
+                                // trigger download
+                                const link = document.createElement("a");
+                                link.href = window.URL.createObjectURL(blob);
+                                const currentDateStr = new Date().toISOString();
+                                const name = `Carleton-Schedule-(${appManager.selectedTerm})-${currentDateStr}.ics`;
+                                link.download = name;
+                                link.click();
+
+                                const tutorial = (
+                                    <div
+                                        className={css({
+                                            padding: "20px",
+                                            backgroundColor: "white",
+                                            borderRadius: "10px",
+                                        })}
+                                    >
+                                        <h2>Export to Calendar</h2>
+                                        <p>
+                                            You can import this file into your
+                                            calendar app to see your schedule.
+                                        </p>
+                                        <p>Platform Tutorials</p>
+                                        <ul>
+                                            <li>
+                                                <a href="https://support.google.com/calendar/answer/37118?hl=en&co=GENIE.Platform%3DDesktop">
+                                                    Google Calendar
+                                                </a>
+                                            </li>
+                                            <li>
+                                                <a href="https://support.microsoft.com/en-us/office/import-or-subscribe-to-a-calendar-in-outlook-com-cff1429c-5af6-41ec-a5b4-74f2c278e98c">
+                                                    Outlook
+                                                </a>
+                                            </li>
+                                            <li>
+                                                <a href="https://support.apple.com/en-gb/guide/calendar/icl1023/14.0/mac/14.0">
+                                                    Apple Calendar
+                                                </a>
+                                            </li>
+                                        </ul>
+                                    </div>
+                                );
+
+                                setTutorialModalContent(tutorial);
+                            }}
+                            onNextPage={() => {
+                                appManager.nextSchedule();
+                            }}
+                            onPrevPage={() => {
+                                appManager.previousSchedule();
+                            }}
+                            hasPrev={appManager.hasPreviousSchedule}
+                            hasNext={appManager.hasNextSchedule}
+                            onCarletonCentral={() => {
+                                setTutorialModalContent(
+                                    <div
+                                        className={css({
+                                            padding: "20px",
+                                            backgroundColor: "white",
+                                            borderRadius: "10px",
+                                            width: "700px",
+                                        })}
+                                    >
+                                        <h2>Export to Carleton Central</h2>
+                                        <ol>
+                                            <li>
+                                                <p>Go to Carleton Central</p>
+                                            </li>
+                                            <li>
+                                                <p>
+                                                    Click "Build Your
+                                                    Timetable/Registration"
+                                                    under Registration.
+                                                </p>
+                                            </li>
+                                            <li>
+                                                <p>Click "View Worksheet".</p>
+                                            </li>
+                                            <li>
+                                                At the bottom, copy the
+                                                following CRNs and paste them
+                                                into the text fields.
+                                            </li>
+                                            <li>
+                                                <p>Click "Add Courses".</p>
+                                            </li>
+                                            <li>Review your schedule!</li>
+                                        </ol>
+                                        <Row
+                                            $style={{
+                                                justifyContent: "center",
+                                                fontWeight: "bold",
+                                                fontSize: "1.25em",
+                                                borderBottom: "1px solid black",
+                                            }}
+                                        >
+                                            CRNs
+                                        </Row>
+                                        <Row
+                                            $style={{
+                                                justifyContent: "center",
+                                                gap: "10px",
+                                                padding: "10px",
+                                            }}
+                                        >
+                                            {props.events.map((event) => {
+                                                return (
+                                                    <pre
+                                                        className={css({
+                                                            padding: "10px",
+                                                            backgroundColor:
+                                                                "rgba(0, 0, 0, 0.1)",
+                                                            borderRadius:
+                                                                "10px",
+                                                        }).toString()}
+                                                    >
+                                                        {event.course.CRN}
+                                                    </pre>
+                                                );
+                                            })}
+                                        </Row>
+                                    </div>
+                                );
+                            }}
+                        />
+                    </Row>
+                </div>
+            </Column>
+        </>
     );
 });

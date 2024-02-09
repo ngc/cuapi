@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useState } from "react";
+import { Suspense, useEffect, useLayoutEffect, useState } from "react";
 import "./App.css";
 import { useStyletron } from "baseui";
 import { CourseDetails } from "../api/api";
@@ -103,7 +103,9 @@ export const App = observer(() => {
                                 flex: 8,
                             }}
                         >
-                            <Calendar events={appManager.toEvents()} />
+                            <Suspense fallback={<div>Loading...</div>}>
+                                <Calendar events={appManager.toEvents()} />
+                            </Suspense>
                         </Column>
                     </Row>
                 </Column>

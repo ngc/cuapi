@@ -104,12 +104,10 @@ export const convertToTimestamps = (
                         });
                     }
                 } catch (e) {
-                    console.log(e);
                     continue;
                 }
             }
         } catch (e) {
-            console.log(e);
             continue;
         }
     }
@@ -177,7 +175,7 @@ export const calculateDaysOff = (schedule: Schedule): number => {
 export const fitness = (schedule: Schedule): number => {
     let score = -100000 * calculateConflicts(schedule);
     score -= 100 * calculateTimeSpentInBetweenClasses(schedule);
-    score += 200 * calculateDaysOff(schedule);
+    score += 10000 * calculateDaysOff(schedule);
 
     return score;
 };
@@ -239,7 +237,6 @@ export const getBestSchedules = (
     // return the best
     population.sort((a, b) => fitness(a) - fitness(b));
 
-    console.log("$$$ best schedule", population[0]);
     const purged = purgeDuplicates(population);
 
     return purgeConflicts(purged).slice(0, returnSize);

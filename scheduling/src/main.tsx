@@ -11,6 +11,37 @@ import { ToasterContainer } from "baseui/toast/toaster";
 import pinkGradient from "./pinkGradient.svg";
 
 const engine = new Styletron();
+console.log(
+    `                      
+
+                                                                                                             
+                                                                                                             
+             jjjj                   lllllll   iiii                                         333333333333333   
+            j::::j                  l:::::l  i::::i                                <<<<<<<3:::::::::::::::33 
+             jjjj                   l:::::l   iiii                                <:::::< 3::::::33333::::::3
+                                    l:::::l                                      <:::::<  3333333     3:::::3
+           jjjjjjjuuuuuu    uuuuuu   l::::l iiiiiii     eeeeeeeeeeee            <:::::<               3:::::3
+           j:::::ju::::u    u::::u   l::::l i:::::i   ee::::::::::::ee         <:::::<                3:::::3
+            j::::ju::::u    u::::u   l::::l  i::::i  e::::::eeeee:::::ee      <:::::<         33333333:::::3 
+            j::::ju::::u    u::::u   l::::l  i::::i e::::::e     e:::::e     <:::::<          3:::::::::::3  
+            j::::ju::::u    u::::u   l::::l  i::::i e:::::::eeeee::::::e      <:::::<         33333333:::::3 
+            j::::ju::::u    u::::u   l::::l  i::::i e:::::::::::::::::e        <:::::<                3:::::3
+            j::::ju::::u    u::::u   l::::l  i::::i e::::::eeeeeeeeeee          <:::::<               3:::::3
+            j::::ju:::::uuuu:::::u   l::::l  i::::i e:::::::e                    <:::::<              3:::::3
+            j::::ju:::::::::::::::uul::::::li::::::ie::::::::e                    <:::::< 3333333     3:::::3
+            j::::j u:::::::::::::::ul::::::li::::::i e::::::::eeeeeeee             <<<<<<<3::::::33333::::::3
+            j::::j  uu::::::::uu:::ul::::::li::::::i  ee:::::::::::::e                    3:::::::::::::::33 
+            j::::j    uuuuuuuu  uuuulllllllliiiiiiii    eeeeeeeeeeeeee                     333333333333333   
+            j::::j                                                                                           
+  jjjj      j::::j                                                                                           
+ j::::jj   j:::::j                                                                                           
+ j::::::jjj::::::j                                                                                           
+  jj::::::::::::j                                                                                            
+    jjj::::::jjj                                                                                             
+       jjjjjj                                                                                                
+
+    `
+);
 interface AppManagerProviderContext {
     appManager: Instance<typeof AppManager>;
 }
