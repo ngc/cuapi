@@ -9,6 +9,8 @@ import { AppManager } from "./api/AppManager.ts";
 import { observer } from "mobx-react-lite";
 import { ToasterContainer } from "baseui/toast/toaster";
 import pinkGradient from "./pinkGradient.svg";
+import Modal from "baseui/modal/modal";
+import { Row } from "./components/util.tsx";
 
 const engine = new Styletron();
 console.log(
@@ -125,6 +127,61 @@ export const Background = () => {
     );
 };
 
+export const ScreenWidthProtector = (props: {
+    children: React.ReactNode;
+    minWidth: number;
+}) => {
+    // if the screen is too narrow, show a modal that says "this app is not optimized for mobile"
+    const [css, $theme] = useStyletron();
+    const [isOpen, setIsOpen] = React.useState(false);
+    useEffect(() => {
+        if (window.innerWidth < props.minWidth) {
+            setIsOpen(true);
+        }
+    }, [props.minWidth]);
+
+    return (
+        <div>
+            <Modal
+                overrides={{
+                    Root: {
+                        style: {
+                            zIndex: 1000,
+                        },
+                    },
+                }}
+                isOpen={isOpen}
+                onClose={() => setIsOpen(false)}
+            >
+                <div
+                    className={css({
+                        width: "100%",
+                        height: "100%",
+                        display: "flex",
+                        justifyContent: "center",
+                        alignItems: "center",
+                        flexDirection: "column",
+                    })}
+                >
+                    <Row>
+                        <h3
+                            className={css({
+                                textAlign: "center",
+                            })}
+                        >
+                            This app is not optimized for mobile.
+                        </h3>
+                    </Row>
+                    <Row>
+                        <h4> Try it on your favorite desktop browser!</h4>
+                    </Row>
+                </div>
+            </Modal>
+            {props.children}
+        </div>
+    );
+};
+
 ReactDOM.createRoot(document.getElementById("root")!).render(
     <React.StrictMode>
         <StyletronProvider value={engine}>
@@ -143,8 +200,10 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
                                 overflow: "hidden",
                             }}
                         >
-                            <App />
-                            <Background />
+                            <ScreenWidthProtector minWidth={1000}>
+                                <App />
+                                <Background />
+                            </ScreenWidthProtector>
                         </div>
                     </ToasterContainer>
                 </AppManagerProvider>

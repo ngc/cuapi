@@ -131,6 +131,7 @@ export const SearchResultItem = (props: {
         <div
             onClick={async () => {
                 const [subject, code] = course.split(" ");
+                props.closeModal();
 
                 const options = await offeringSearch(
                     convert_term(appManager.selectedTerm),
@@ -186,8 +187,6 @@ export const SearchResultItem = (props: {
                 }
 
                 const sectionModels: SectionModel[] = Object.values(sectionMap);
-
-                props.closeModal();
 
                 appManager.addOffering({
                     offering_name: course,

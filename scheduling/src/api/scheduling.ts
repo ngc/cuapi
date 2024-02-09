@@ -235,9 +235,10 @@ export const getBestSchedules = (
     }
 
     // return the best
-    population.sort((a, b) => fitness(a) - fitness(b));
 
     const purged = purgeDuplicates(population);
+
+    purged.sort((a, b) => fitness(a) - fitness(b));
 
     return purgeConflicts(purged).slice(0, returnSize);
 };
