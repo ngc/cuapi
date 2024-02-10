@@ -66,6 +66,23 @@ export const convert_term = (term: string) => {
     return "F";
 };
 
+export const parseInstructor = (
+    instructor?: string | null
+): string | undefined => {
+    if (instructor === undefined) return undefined;
+    if (instructor === null) return undefined;
+
+    const split = instructor.split(" ");
+    const name = [];
+    for (let i = 0; i < split.length - 1; i++) {
+        if (split[i][0] !== "(") {
+            name.push(split[i]);
+        }
+    }
+
+    return name.join(" ");
+};
+
 const stringToColor = (str: string): string => {
     // DJB2 hash function
     let hash = 5381;
@@ -205,6 +222,9 @@ export const AppManager = types
                 if (course === undefined) {
                     return;
                 }
+
+                console.log(course);
+
                 for (let meeting of course.meeting_details) {
                     for (let day of meeting.days) {
                         let dayIndex = days.indexOf(day);
@@ -235,6 +255,7 @@ export const AppManager = types
                                 color: stringToColor(subject),
                                 course: course,
                                 meeting: meeting,
+                                instructor: parseInstructor(meeting.instructor),
                             });
                         }
                     }

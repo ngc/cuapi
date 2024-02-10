@@ -15,7 +15,6 @@ import { Tooltip } from "@mui/material";
 export const AddCourseButton = (props: { onClick: () => void }) => {
     return (
         <Button
-            kind="secondary"
             onClick={props.onClick}
             overrides={{
                 BaseButton: {

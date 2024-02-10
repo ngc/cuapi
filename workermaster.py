@@ -6,34 +6,8 @@ import requests
 import os
 from dotenv import load_dotenv
 
-URL = "http://localhost:3969"
+URL = "https://cuapi.nathancoulas.com"
 load_dotenv()
-
-"""
-class AddCourse(Resource):
-    def post(self):
-        parser = reqparse.RequestParser()
-
-        # take a single JSON string as input
-        parser.add_argument("course_details", type=str)
-        args = parser.parse_args()
-
-        course_details = json.loads(args["course_details"])
-        db.insert_course(course_details)
-        return jsonify(course_details)
-
-
-# Add the resource to the api
-api.add_resource(Course, "/course/<string:term>/<string:crn>")
-api.add_resource(CourseSearch, "/search/<string:search_term>/<int:page>")
-api.add_resource(
-    OfferingSearch, "/offering/<string:term>/<string:subject>/<string:code>/<int:page>"
-)
-api.add_resource(
-    SearchForOfferings, "/search-offerings/<string:term>/<string:search_term>"
-)
-api.add_resource(AddCourse, "/add-course")
-"""
 
 
 def add_course(course: CourseDetails):

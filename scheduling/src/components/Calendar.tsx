@@ -39,7 +39,18 @@ const getCalendarTimeString = (time: CalendarTime) => {
 };
 
 export const CalendarTime = (props: { time: CalendarTime }) => {
-    return <span>{getCalendarTimeString(props.time)}</span>;
+    const [css, _$theme] = useStyletron();
+
+    return (
+        <span
+            className={css({
+                color: "white",
+                fontWeight: "bold",
+            }).toString()}
+        >
+            {getCalendarTimeString(props.time)}
+        </span>
+    );
 };
 
 export interface CalendarEvent {
@@ -54,6 +65,7 @@ export interface CalendarEvent {
     onHover: () => void;
     onLeave: () => void;
     color: string;
+    instructor?: string;
 }
 
 export interface CalendarProps {
@@ -261,6 +273,7 @@ const EventDisplay = (props: { event: CalendarEvent; height: number }) => {
                 <Row
                     $style={{
                         gap: "5px",
+                        color: "white",
                     }}
                 >
                     <CalendarTime time={props.event.startTime} />
@@ -268,6 +281,22 @@ const EventDisplay = (props: { event: CalendarEvent; height: number }) => {
                     <CalendarTime time={props.event.endTime} />
                 </Row>
             </span>
+            {props.event.instructor && (
+                <span
+                    className={css({
+                        display: props.height < 80 ? "none" : "flex",
+                        // fit in one line
+                        // as the length of the instructor's name increases, the font size decreases
+                        fontSize: `${
+                            1.25 -
+                            Math.min(0.4, props.event.instructor.length / 20)
+                        }em`,
+                        color: "white",
+                    })}
+                >
+                    <p>Instructor: {props.event.instructor}</p>
+                </span>
+            )}
         </div>
     );
 };
