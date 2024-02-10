@@ -35,7 +35,7 @@ export interface CourseDetails {
 
 type CourseOfferingName = string;
 
-const IS_DEV = false && window.location.hostname === "localhost";
+const IS_DEV = window.location.hostname === "localhost";
 
 const API_URL = IS_DEV
     ? "http://localhost:3969/"
