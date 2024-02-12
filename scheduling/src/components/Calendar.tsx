@@ -545,7 +545,6 @@ export const Calendar = observer((props: CalendarProps) => {
                                             padding: "20px",
                                             backgroundColor: "white",
                                             borderRadius: "10px",
-                                            width: "700px",
                                         })}
                                     >
                                         <h2>Export to Carleton Central</h2>
@@ -585,8 +584,10 @@ export const Calendar = observer((props: CalendarProps) => {
                                         </Row>
                                         <Row
                                             $style={{
-                                                justifyContent: "center",
+                                                display: "grid",
                                                 gap: "10px",
+                                                gridTemplateColumns:
+                                                    "1fr 1fr 1fr 1fr",
                                                 padding: "10px",
                                             }}
                                         >
