@@ -539,6 +539,12 @@ export const Calendar = observer((props: CalendarProps) => {
                             hasPrev={appManager.hasPreviousSchedule}
                             hasNext={appManager.hasNextSchedule}
                             onCarletonCentral={() => {
+                                const crnSet = new Set<string>();
+                                for (let event of props.events) {
+                                    crnSet.add(event.course.CRN);
+                                }
+                                const crns = Array.from(crnSet);
+
                                 setTutorialModalContent(
                                     <div
                                         className={css({
@@ -591,7 +597,7 @@ export const Calendar = observer((props: CalendarProps) => {
                                                 padding: "10px",
                                             }}
                                         >
-                                            {props.events.map((event) => {
+                                            {crns.map((crn) => {
                                                 return (
                                                     <pre
                                                         className={css({
@@ -600,9 +606,12 @@ export const Calendar = observer((props: CalendarProps) => {
                                                                 "rgba(0, 0, 0, 0.1)",
                                                             borderRadius:
                                                                 "10px",
-                                                        }).toString()}
+                                                            display: "flex",
+                                                            justifyContent:
+                                                                "center",
+                                                        })}
                                                     >
-                                                        {event.course.CRN}
+                                                        {crn}
                                                     </pre>
                                                 );
                                             })}

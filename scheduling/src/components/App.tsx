@@ -159,7 +159,17 @@ export const App = observer(() => {
                     }}
                 >
                     <Row>
-                        <h1>cuScheduling</h1>
+                        <Column>
+                            <h1>cuScheduling</h1>
+                            <Row>
+                                <footer>
+                                    Made with ❤️ by{" "}
+                                    <a href="https://nathancoulas.com">
+                                        Nathan Coulas
+                                    </a>
+                                </footer>
+                            </Row>
+                        </Column>
                     </Row>
                     <Row>
                         <Calendar
