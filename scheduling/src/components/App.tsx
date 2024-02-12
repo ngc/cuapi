@@ -124,6 +124,7 @@ export const App = observer(() => {
                             <Column
                                 $style={{
                                     flex: 8,
+                                    marginRight: "40px",
                                 }}
                             >
                                 <Suspense fallback={<div>Loading...</div>}>
