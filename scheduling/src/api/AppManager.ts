@@ -117,20 +117,12 @@ export const RelatedOffering = types
         section_models: types.array(types.frozen<SectionModel>()),
     })
     .views((self) => ({
-        get allPermutations(): CourseAndTutorial[] {
-            // for each section model, add a CourseAndTutorial to the list of permutations for each course
-            let permutations: CourseAndTutorial[] = [];
+        get allSectionModels(): SectionModel[] {
+            const sectionModels: SectionModel[] = [];
             for (let sectionModel of self.section_models) {
-                for (let course of sectionModel.courses) {
-                    for (let tutorial of sectionModel.tutorials) {
-                        permutations.push({ course, tutorial });
-                    }
-                    if (sectionModel.tutorials.length === 0) {
-                        permutations.push({ course, tutorial: undefined });
-                    }
-                }
+                sectionModels.push(sectionModel);
             }
-            return permutations;
+            return sectionModels;
         },
     }));
 
@@ -149,7 +141,7 @@ export const AppManager = types
             let availableCourses: AvailableCourses = {};
             for (let offering of self.selectedOfferings) {
                 availableCourses[offering.offering_name] =
-                    offering.allPermutations;
+                    offering.allSectionModels;
             }
             return availableCourses;
         },

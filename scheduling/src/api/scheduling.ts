@@ -1,3 +1,4 @@
+import { SectionModel } from "./AppManager";
 import { CourseDetails } from "./api";
 
 export interface CourseAndTutorial {
@@ -6,38 +7,64 @@ export interface CourseAndTutorial {
 }
 
 export type Schedule = {
-    [term: string]: CourseAndTutorial;
+    [subject_code: string]: CourseAndTutorial;
 };
 
 // For each chosen course, add all possible combinations of lectures and tutorials
 export type AvailableCourses = {
-    [term: string]: CourseAndTutorial[];
-};
-
-export const generateRandomSchedule = (
-    availableCourses: AvailableCourses
-): Schedule => {
-    const schedule: Schedule = {};
-    for (let term in availableCourses) {
-        const courses = availableCourses[term];
-        const randomIndex = Math.floor(Math.random() * courses.length);
-        schedule[term] = courses[randomIndex];
-    }
-    return schedule;
+    [subject_code: string]: SectionModel[];
 };
 
 export const mutateSchedule = (
     schedule: Schedule,
     availableCourses: AvailableCourses
 ): Schedule => {
-    const newSchedule = { ...schedule };
-    const term =
-        Object.keys(schedule)[
-            Math.floor(Math.random() * Object.keys(schedule).length)
+    // first pick a random key from schedule
+    const keys = Object.keys(schedule);
+    const randomKey = keys[Math.floor(Math.random() * keys.length)];
+
+    const randomSectionModel =
+        availableCourses[randomKey][
+            Math.floor(Math.random() * availableCourses[randomKey].length)
         ];
-    const courses = availableCourses[term];
-    newSchedule[term] = courses[Math.floor(Math.random() * courses.length)];
-    return newSchedule;
+    // mutate the course and tutorial
+    schedule[randomKey].course =
+        randomSectionModel.courses[
+            Math.floor(Math.random() * randomSectionModel.courses.length)
+        ];
+    if (randomSectionModel.tutorials.length > 0) {
+        schedule[randomKey].tutorial =
+            randomSectionModel.tutorials[
+                Math.floor(Math.random() * randomSectionModel.tutorials.length)
+            ];
+    }
+    return schedule;
+};
+
+export const generateRandomSchedule = (
+    availableCourses: AvailableCourses
+): Schedule => {
+    let schedule: Schedule = {};
+    for (let subject_code in availableCourses) {
+        const sectionModel =
+            availableCourses[subject_code][
+                Math.floor(
+                    Math.random() * availableCourses[subject_code].length
+                )
+            ];
+        schedule[subject_code] = {
+            course: sectionModel.courses[
+                Math.floor(Math.random() * sectionModel.courses.length)
+            ],
+        };
+        if (sectionModel.tutorials.length > 0) {
+            schedule[subject_code].tutorial =
+                sectionModel.tutorials[
+                    Math.floor(Math.random() * sectionModel.tutorials.length)
+                ];
+        }
+    }
+    return schedule;
 };
 
 const WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri"];
