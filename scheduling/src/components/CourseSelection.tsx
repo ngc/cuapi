@@ -250,11 +250,11 @@ export const CourseSelectionModal = observer(
         return (
             <Modal
                 overrides={{
-                    // Root: {
-                    //     style: {
-                    //         zIndex: 1000,
-                    //     },
-                    // },
+                    Root: {
+                        style: {
+                            ...(!props.showCourses ? { zIndex: 1000 } : {}),
+                        },
+                    },
                     DialogContainer: {
                         style: {
                             backdropFilter: "blur(10px)",
@@ -271,15 +271,20 @@ export const CourseSelectionModal = observer(
                         padding: "20px",
                     }}
                 >
-                    <Row
-                        $style={{
-                            padding: "10px",
-                            justifyContent: "space-between",
-                        }}
-                    >
-                        <CourseSelectionList row />
-                        <TermPicker />
-                    </Row>
+                    {props.showCourses && (
+                        <Row
+                            $style={{
+                                padding: "10px",
+                                justifyContent: "space-between",
+                            }}
+                        >
+                            <CourseSelectionList
+                                row
+                                onClickAddCourse={() => {}}
+                            />
+                            <TermPicker />
+                        </Row>
+                    )}
                     <h1>Add Course</h1>
                     <Row
                         $style={{
