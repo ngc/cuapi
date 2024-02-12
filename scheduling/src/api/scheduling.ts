@@ -279,6 +279,7 @@ export const getBestSchedules = (
             );
         }
     }
+    population = purgeDuplicates(population);
 
     // return the best
 
