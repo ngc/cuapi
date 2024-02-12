@@ -217,12 +217,23 @@ export const purgeConflicts = (schedules: Schedule[]): Schedule[] => {
     return purged;
 };
 
+export const stringifySchedule = (schedule: Schedule): string => {
+    let stringified = "";
+    for (let courseAndTutorial of Object.values(schedule)) {
+        stringified +=
+            courseAndTutorial.course?.CRN ?? (Math.random() * 1000).toString();
+        if (courseAndTutorial.tutorial) {
+            stringified += "| " + courseAndTutorial.tutorial?.CRN;
+        }
+    }
+    return stringified;
+};
+
 export const purgeDuplicates = (schedules: Schedule[]): Schedule[] => {
     let purged: Schedule[] = [];
     let seen = new Set<string>();
     for (let schedule of schedules) {
-        const flat = flattenSchedule(schedule);
-        const stringified = JSON.stringify(flat);
+        const stringified = stringifySchedule(schedule);
         if (!seen.has(stringified)) {
             purged.push(schedule);
             seen.add(stringified);
@@ -248,6 +259,8 @@ export const getBestSchedules = (
     }
 
     // evolve
+    const populationSet;
+
     for (let generation = 0; generation < maxGenerations; generation++) {
         // sort population by fitness
         population.sort((a, b) => fitness(a) - fitness(b));
@@ -259,13 +272,20 @@ export const getBestSchedules = (
         for (let i = 0; i < populationSize / 2; i++) {
             population.push(mutateSchedule(population[i], availableCourses));
         }
+        population = purgeDuplicates(population);
+        for (let i = population.length; i < populationSize; i++) {
+            population.push(
+                mutateSchedule(
+                    population[i % population.length],
+                    availableCourses
+                )
+            );
+        }
     }
 
     // return the best
 
-    const purged = purgeDuplicates(population);
+    population.sort((a, b) => fitness(a) - fitness(b));
 
-    purged.sort((a, b) => fitness(a) - fitness(b));
-
-    return purgeConflicts(purged).slice(0, returnSize);
+    return purgeConflicts(population).slice(0, returnSize);
 };
