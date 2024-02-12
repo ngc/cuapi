@@ -9,6 +9,7 @@ import { useAppManager } from "../main";
 import { Column, Row } from "./util";
 import { ChevronLeft, ChevronRight } from "baseui/icon";
 import { Modal } from "baseui/modal";
+import { StyleObject } from "styletron-react";
 
 /**
  * The CalendarTime interface is used to represent a time in the calendar.
@@ -70,9 +71,11 @@ export interface CalendarEvent {
 
 export interface CalendarProps {
     events: CalendarEvent[];
+    $style?: StyleObject;
+    mobile?: boolean;
 }
 
-const CalendarGrid = observer(() => {
+const CalendarGrid = observer((props: { mobile?: boolean }) => {
     /*
     Calendar grid will be a 5x13 grid that will be used to display the events.
     */
@@ -96,6 +99,13 @@ const CalendarGrid = observer(() => {
         "9 pm",
     ];
 
+    if (props.mobile) {
+        // remove pm and am
+        for (let i = 0; i < hours.length; i++) {
+            hours[i] = hours[i].replace(" am", "").replace(" pm", "");
+        }
+    }
+
     return (
         <table className="calendar-grid">
             <tr className="header-row">
@@ -106,17 +116,27 @@ const CalendarGrid = observer(() => {
                 <td>Thursday</td>
                 <td>Friday</td>
             </tr>
-            {hours.map((hour) => {
+            {hours.map((hour, index) => {
                 const cellClass = css({
                     transition: "all 0.2s",
                     ":hover": {
                         backgroundColor: "rgba(0, 0, 0, 0.1)",
                     },
+
+                    ...(props.mobile
+                        ? {
+                              height: "4vh",
+                          }
+                        : {
+                              height: "40px",
+                          }),
                 });
 
                 return (
                     <tr>
-                        <td className={"time-td"}>{hour}</td>
+                        <td id={`hour-${index}`} className={"time-td"}>
+                            {hour}
+                        </td>
                         <td className={cellClass}></td>
                         <td className={cellClass}></td>
                         <td className={cellClass}></td>
@@ -136,7 +156,7 @@ const makeHexTransparent = (hex: string, opacity: number) => {
     return `rgba(${r}, ${g}, ${b}, ${opacity})`;
 };
 
-const EventPositioner = (props: { event: CalendarEvent }) => {
+const EventPositioner = (props: { event: CalendarEvent; mobile?: boolean }) => {
     // This div will be used to position the event on the grid
     // we use the start and end times to calculate the position of the event
     // firstly, the column will be the day of the week
@@ -158,9 +178,7 @@ const EventPositioner = (props: { event: CalendarEvent }) => {
             const endHour = props.event.endTime.hour - 7;
             const endMinute = props.event.endTime.minute;
 
-            const timeHeaderCell = document.getElementById(
-                "calendar-time-header"
-            );
+            const timeHeaderCell = document.getElementById("hour-0");
             // we will use this to calculate contextual size
             // the height of this cell is the same as the height of every hour
             // the width of this cell will be used as an offset as the first column represents the time (and not a day)
@@ -231,14 +249,22 @@ const EventPositioner = (props: { event: CalendarEvent }) => {
                         width: "100%",
                     })}
                 >
-                    <EventDisplay event={props.event} height={layout.height} />
+                    <EventDisplay
+                        event={props.event}
+                        height={layout.height}
+                        mobile={props.mobile}
+                    />
                 </div>
             </div>
         </>
     );
 };
 
-const EventDisplay = (props: { event: CalendarEvent; height: number }) => {
+const EventDisplay = (props: {
+    event: CalendarEvent;
+    height: number;
+    mobile?: boolean;
+}) => {
     const [css, _$theme] = useStyletron();
     // grid that has three rows or three columns depending on the container size
     return (
@@ -254,26 +280,34 @@ const EventDisplay = (props: { event: CalendarEvent; height: number }) => {
                 fontFamily: "Inconsolata, monospace",
             })}
         >
-            <div
-                className={css({
-                    display: "flex",
-                    padding: 0,
-                    margin: 0,
-                    fontSize: "1.25em",
-                    color: "white",
-                })}
+            <Row
+                $style={{
+                    justifyContent: "space-between",
+                }}
             >
-                {props.event.title}
-            </div>
+                <div
+                    className={css({
+                        display: "flex",
+                        padding: 0,
+                        margin: 0,
+                        fontSize: "calc(1.25em * 1.25vw + 1.25em)",
+                        color: "white",
+                    })}
+                >
+                    {props.event.title}
+                </div>
+            </Row>
             <span
                 className={css({
-                    display: props.height < 40 ? "none" : "flex",
+                    display:
+                        props.height < 40 || props.mobile ? "none" : "flex",
                 })}
             >
                 <Row
                     $style={{
                         gap: "5px",
                         color: "white",
+                        fontSize: "calc(1.25em * 1.25vw)",
                     }}
                 >
                     <CalendarTime time={props.event.startTime} />
@@ -355,7 +389,10 @@ const CalendarButtonRow = (props: {
     );
 };
 
-const CalendarEventsOverlay = (props: { events: CalendarEvent[] }) => {
+const CalendarEventsOverlay = (props: {
+    events: CalendarEvent[];
+    mobile?: boolean;
+}) => {
     const [css, _$theme] = useStyletron();
 
     return (
@@ -373,7 +410,7 @@ const CalendarEventsOverlay = (props: { events: CalendarEvent[] }) => {
             })}
         >
             {props.events.map((event) => {
-                return <EventPositioner event={event} />;
+                return <EventPositioner event={event} mobile={props.mobile} />;
             })}
         </div>
     );
@@ -414,13 +451,13 @@ export const Calendar = observer((props: CalendarProps) => {
             <Column
                 $style={{
                     gap: "10px",
+                    ...props.$style,
                 }}
             >
                 <div
                     className={css({
                         display: "flex",
                         flexDirection: "column",
-                        marginRight: "50px",
                         gap: "10px",
                     })}
                 >
@@ -433,8 +470,11 @@ export const Calendar = observer((props: CalendarProps) => {
                                 userSelect: "none",
                             })}
                         >
-                            <CalendarGrid />
-                            <CalendarEventsOverlay events={props.events} />
+                            <CalendarGrid mobile={props.mobile} />
+                            <CalendarEventsOverlay
+                                events={props.events}
+                                mobile={props.mobile}
+                            />
                         </div>
                     </Row>
                     <Row>

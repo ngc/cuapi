@@ -50,27 +50,30 @@ class CourseScraper:
         html = self.driver.page_source
         soup = BeautifulSoup(html, "html.parser")
 
+        def find_next_or_none(search_term: str):
+            element = soup.find(text=search_term)
+            if element is None:
+                return None
+
+            if element.find_next() is None:
+                return None
+            return element.find_next().get_text(strip=True)
+
         # Extracting data
-        registration_term = (
-            soup.find(text="Registration Term:").find_next().get_text(strip=True)
+        registration_term = find_next_or_none("Registration Term:")
+        CRN = find_next_or_none("CRN:")
+        subject_code = find_next_or_none("Subject Code:") or find_next_or_none(
+            "Subject:"
         )
-        CRN = soup.find(text="CRN:").find_next().get_text(strip=True)
-        subject_code = soup.find(text="Subject:").find_next().get_text(strip=True)
-        long_title = soup.find(text="Long Title:").find_next().get_text(strip=True)
-        short_title = soup.find(text="Title:").find_next().get_text(strip=True)
-        course_description = (
-            soup.find(text="Course Description:").find_next().get_text(strip=True)
-        )
-        course_credit_value = float(
-            soup.find(text="Course Credit Value:").find_next().get_text(strip=True)
-        )
-        schedule_type = (
-            soup.find(text="Schedule Type:").find_next().get_text(strip=True)
-        )
-        session_info = (
-            soup.find(text="Full Session Info:").find_next().get_text(strip=True)
-        )
-        registration_status = soup.find(text="Status:").find_next().get_text(strip=True)
+        long_title = find_next_or_none("Long Title:")
+        short_title = find_next_or_none("Short Title:")
+        course_description = find_next_or_none("Course Description:")
+        course_credit_value = float(find_next_or_none("Credit Value:") or 0.0)
+        schedule_type = find_next_or_none("Schedule Type:")
+        session_info = find_next_or_none("Session Information:")
+        registration_status = find_next_or_none("Registration Status:")
+        if registration_status is None:
+            registration_status = "OPEN"
 
         # Extracting section information
         suitability = soup.find(text="NOT SUITABLE FOR ONLINE STUDENTS")
@@ -80,9 +83,7 @@ class CourseScraper:
             suitability = "SUITABLE FOR ONLINE STUDENTS"
 
         section_info = SectionInformation(
-            section_type=soup.find(text="Section Type -")
-            .find_next()
-            .get_text(strip=True),
+            find_next_or_none("Section Information:") or "N/A",
             suitability=suitability,
         )
 
@@ -179,7 +180,12 @@ class CourseScraper:
             By.XPATH, "//a[contains(@href, '&crn=')]"
         )
         # now get the value of the href attribute of each of these elements
-        crn_links = [crn_element.get_attribute("href") for crn_element in crn_elements]
+        crn_set = set()
+        for crn_element in crn_elements:
+            crn_link = crn_element.get_attribute("href")
+            crn_set.add(crn_link)
+
+        crn_links = list(crn_set)
 
         courses = []
 
@@ -187,8 +193,7 @@ class CourseScraper:
             try:
                 courses.append(self.get_course_data(course))
             except Exception as e:
-                print(f"Failed to get course data for {course}")
-                continue
+                print(f"Error scraping {course}: {e}")
 
         courses_dicts = [course.__dict__() for course in courses]
 

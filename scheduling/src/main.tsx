@@ -134,11 +134,11 @@ export const ScreenWidthProtector = (props: {
     // if the screen is too narrow, show a modal that says "this app is not optimized for mobile"
     const [css, _$theme] = useStyletron();
     const [isOpen, setIsOpen] = React.useState(false);
-    useEffect(() => {
-        if (window.innerWidth < props.minWidth) {
-            setIsOpen(true);
-        }
-    }, [props.minWidth]);
+    // useEffect(() => {
+    //     if (window.innerWidth < props.minWidth) {
+    //         setIsOpen(true);
+    //     }
+    // }, [props.minWidth]);
 
     return (
         <div>

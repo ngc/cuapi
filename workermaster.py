@@ -30,11 +30,16 @@ db.initialize_db()
 
 
 def run_scraper(subject, term):
-    scraper = CourseScraper()
-    courses = scraper.search_by_subject(subject, term)
+    try:
+        scraper = CourseScraper()
+        courses = scraper.search_by_subject(subject, term)
 
-    for course in courses:
-        add_course(course)
+        for course in courses:
+            print(f"Adding {course.subject_code} to the database")
+            add_course(course)
+
+    except Exception as e:
+        print(f"Error scraping {subject} for term {term}: {e}")
 
     return courses
 
@@ -56,12 +61,12 @@ if __name__ == "__main__":
             for subject in subjects_keys:
                 futures.append(executor.submit(run_scraper, subject, term))
 
-        for future in futures:
-            try:
-                all_courses += future.result()
-            except Exception as e:
-                print(e)
-                continue
+    for future in futures:
+        try:
+            all_courses += future.result()
+        except Exception as e:
+            print(e)
+            continue
 
     with open("courses.json", "w") as f:
         json.dump(all_courses, f, indent=4)

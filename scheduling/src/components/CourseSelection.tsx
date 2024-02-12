@@ -11,6 +11,7 @@ import { Instance } from "mobx-state-tree";
 import { RelatedOffering, SectionModel, convert_term } from "../api/AppManager";
 import { SegmentedControl, Segment } from "baseui/segmented-control";
 import { Tooltip } from "@mui/material";
+import { TermPicker } from "./App";
 
 export const AddCourseButton = (props: { onClick: () => void }) => {
     return (
@@ -60,9 +61,31 @@ export const SelectedCourseItem = observer(
 );
 
 export const CourseSelectionList = observer(
-    (props: { onClickAddCourse: () => void }) => {
-        const [_css, _$theme] = useStyletron();
+    (props: { onClickAddCourse: () => void; row?: boolean }) => {
+        const [css, _$theme] = useStyletron();
         const appManager = useAppManager();
+
+        if (props.row) {
+            return (
+                <div
+                    className={css({
+                        // grid template columns
+                        display: "grid",
+                        gridTemplateColumns: "auto auto",
+                        gap: "10px",
+                        justifyContent: "center",
+                        alignItems: "center",
+                    })}
+                >
+                    {appManager.selectedOfferings.map((course) => {
+                        return <SelectedCourseItem course={course} />;
+                    })}
+                    {appManager.selectedOfferings.length === 0 && (
+                        <p>No courses selected</p>
+                    )}
+                </div>
+            );
+        }
 
         return (
             <Column
@@ -203,121 +226,132 @@ export const SearchResultItem = (props: {
     );
 };
 
-export const CourseSelectionModal = (props: {
-    isOpen: boolean;
-    onClose: () => void;
-}) => {
-    const [searchResults, setSearchResults] = useState<string[]>([]);
-    const [searchQuery, setSearchQuery] = useState("");
-    const appManager = useAppManager();
-    const [activeTab, setActiveTab] = useState(0);
+export const CourseSelectionModal = observer(
+    (props: {
+        isOpen: boolean;
+        onClose: () => void;
+        showCourses?: boolean;
+    }) => {
+        const [searchResults, setSearchResults] = useState<string[]>([]);
+        const [searchQuery, setSearchQuery] = useState("");
+        const appManager = useAppManager();
+        const [activeTab, setActiveTab] = useState(0);
 
-    useEffect(() => {
-        const fetchData = async () => {
-            const results = await appManager.fetchSearchForOfferings(
-                searchQuery
-            );
-            setSearchResults(results);
-        };
-        fetchData();
-    }, [searchQuery]);
+        useEffect(() => {
+            const fetchData = async () => {
+                const results = await appManager.fetchSearchForOfferings(
+                    searchQuery
+                );
+                setSearchResults(results);
+            };
+            fetchData();
+        }, [searchQuery]);
 
-    return (
-        <Modal
-            overrides={{
-                Root: {
-                    style: {
-                        zIndex: 1000,
+        return (
+            <Modal
+                overrides={{
+                    // Root: {
+                    //     style: {
+                    //         zIndex: 1000,
+                    //     },
+                    // },
+                    DialogContainer: {
+                        style: {
+                            backdropFilter: "blur(10px)",
+                        },
                     },
-                },
-                DialogContainer: {
-                    style: {
-                        backdropFilter: "blur(10px)",
-                    },
-                },
-            }}
-            onClose={() => props.onClose()}
-            isOpen={props.isOpen}
-        >
-            <Column
-                $style={{
-                    textAlign: "center",
-                    gap: "10px",
-                    padding: "20px",
                 }}
+                onClose={() => props.onClose()}
+                isOpen={props.isOpen}
             >
-                <h1>Add Course</h1>
-                <Row
-                    $style={{
-                        width: "100%",
-                        justifyContent: "center",
-                    }}
-                >
-                    <SegmentedControl
-                        overrides={{
-                            Root: {
-                                style: {
-                                    width: "100%",
-                                },
-                            },
-                        }}
-                        activeKey={activeTab}
-                        onChange={({ activeKey }) => {
-                            setActiveTab(activeKey as number);
-                        }}
-                    >
-                        <Segment
-                            artwork={() => "📚"}
-                            label="By Subject Code"
-                            description="Example: COMP 2402"
-                            badge={1}
-                        />
-                        <Segment
-                            artwork={() => "🤓"}
-                            label="By CRN"
-                            description="Example: 11213"
-                            disabled={true}
-                        />
-                        <Segment
-                            artwork={() => "😡"}
-                            label="By Course Code"
-                            description="Example: MATH 1104 CT"
-                            disabled={true}
-                        />
-                    </SegmentedControl>
-                </Row>
-
-                <Input
-                    placeholder="Search for a course..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.currentTarget.value)}
-                />
-
                 <Column
                     $style={{
-                        height: "200px",
-                        overflowY: "scroll",
-                        gap: "5px",
+                        textAlign: "center",
+                        gap: "10px",
+                        padding: "20px",
                     }}
                 >
-                    {searchResults.map((course) => {
-                        return (
-                            <Row
-                                $style={{
-                                    width: "100%",
-                                    justifyContent: "center",
-                                }}
-                            >
-                                <SearchResultItem
-                                    key={course}
-                                    course={course}
-                                    closeModal={props.onClose}
-                                />
-                            </Row>
-                        );
-                    })}
+                    <Row
+                        $style={{
+                            padding: "10px",
+                            justifyContent: "space-between",
+                        }}
+                    >
+                        <CourseSelectionList row />
+                        <TermPicker />
+                    </Row>
+                    <h1>Add Course</h1>
+                    <Row
+                        $style={{
+                            width: "100%",
+                            justifyContent: "center",
+                        }}
+                    >
+                        <SegmentedControl
+                            overrides={{
+                                Root: {
+                                    style: {
+                                        width: "100%",
+                                    },
+                                },
+                            }}
+                            activeKey={activeTab}
+                            onChange={({ activeKey }) => {
+                                setActiveTab(activeKey as number);
+                            }}
+                        >
+                            <Segment
+                                artwork={() => "📚"}
+                                label="By Subject Code"
+                                description="Example: COMP 2402"
+                            />
+                            <Segment
+                                artwork={() => "🤓"}
+                                label="By CRN"
+                                description="Example: 11213"
+                                disabled={true}
+                            />
+                            <Segment
+                                artwork={() => "😡"}
+                                label="By Course Code"
+                                description="Example: MATH 1104 CT"
+                                disabled={true}
+                            />
+                        </SegmentedControl>
+                    </Row>
+
+                    <Input
+                        placeholder="Search for a course..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.currentTarget.value)}
+                    />
+
+                    <Column
+                        $style={{
+                            height: "200px",
+                            overflowY: "scroll",
+                            gap: "5px",
+                        }}
+                    >
+                        {searchResults.map((course) => {
+                            return (
+                                <Row
+                                    $style={{
+                                        width: "100%",
+                                        justifyContent: "center",
+                                    }}
+                                >
+                                    <SearchResultItem
+                                        key={course}
+                                        course={course}
+                                        closeModal={props.onClose}
+                                    />
+                                </Row>
+                            );
+                        })}
+                    </Column>
                 </Column>
-            </Column>
-        </Modal>
-    );
-};
+            </Modal>
+        );
+    }
+);
