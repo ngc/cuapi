@@ -258,9 +258,6 @@ export const getBestSchedules = (
         population.push(generateRandomSchedule(availableCourses));
     }
 
-    // evolve
-    const populationSet;
-
     for (let generation = 0; generation < maxGenerations; generation++) {
         // sort population by fitness
         population.sort((a, b) => fitness(a) - fitness(b));

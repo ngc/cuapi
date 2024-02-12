@@ -9,7 +9,6 @@ import {
 import { CalendarEvent } from "../components/Calendar";
 import {
     AvailableCourses,
-    CourseAndTutorial,
     Schedule,
     flattenSchedule,
     getBestSchedules,
