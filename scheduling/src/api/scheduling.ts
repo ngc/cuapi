@@ -163,47 +163,8 @@ export const calculateConflicts = (schedule: Schedule): number => {
     return conflicts;
 };
 
-export const calculateTimeSpentInBetweenClasses = (
-    schedule: Schedule
-): number => {
-    const flat = flattenSchedule(schedule);
-    const timestamps = convertToTimestamps(flat);
-    timestamps.sort((a, b) => a.startMinute - b.startMinute);
-    let timeSpentInBetweenClasses = 0;
-    let currentEnd = 0;
-    // if the dayIndex of the current timestamp is the same as the dayIndex of the previous timestamp
-    // and the startMinute of the current timestamp is less than the currentEnd
-    // then we add the difference between the currentEnd and the startMinute of the current timestamp to timeSpentInBetweenClasses
-    let previousDayIndex = -1;
-    for (let timestamp of timestamps) {
-        if (
-            (timestamp.dayIndex === previousDayIndex ||
-                previousDayIndex === -1) &&
-            timestamp.startMinute < currentEnd
-        ) {
-            timeSpentInBetweenClasses += currentEnd - timestamp.startMinute;
-        }
-        currentEnd = Math.max(currentEnd, timestamp.endMinute);
-        previousDayIndex = timestamp.dayIndex;
-    }
-    return timeSpentInBetweenClasses;
-};
-
-export const calculateDaysOff = (schedule: Schedule): number => {
-    const dayCounts = [0, 0, 0, 0, 0];
-    const flat = flattenSchedule(schedule);
-    const timestamps = convertToTimestamps(flat);
-    for (let timestamp of timestamps) {
-        dayCounts[timestamp.dayIndex]++;
-    }
-    return dayCounts.filter((count) => count === 0).length;
-};
-
 export const fitness = (schedule: Schedule): number => {
     let score = -100000 * calculateConflicts(schedule);
-    score -= 100 * calculateTimeSpentInBetweenClasses(schedule);
-    score += 10000 * calculateDaysOff(schedule);
-
     return score;
 };
 
@@ -219,7 +180,7 @@ export const purgeConflicts = (schedules: Schedule[]): Schedule[] => {
 
 export const stringifySchedule = (schedule: Schedule): string => {
     let stringified = "";
-    for (let courseAndTutorial of Object.values(schedule)) {
+    for (let courseAndTutorial of Object.values(schedule).sort()) {
         stringified +=
             courseAndTutorial.course?.CRN ?? (Math.random() * 1000).toString();
         if (courseAndTutorial.tutorial) {
@@ -271,17 +232,10 @@ export const getBestSchedules = (
         }
         population = purgeDuplicates(population);
         for (let i = population.length; i < populationSize; i++) {
-            population.push(
-                mutateSchedule(
-                    population[i % population.length],
-                    availableCourses
-                )
-            );
+            population.push(generateRandomSchedule(availableCourses));
         }
     }
     population = purgeDuplicates(population);
-
-    // return the best
 
     population.sort((a, b) => fitness(a) - fitness(b));
 
