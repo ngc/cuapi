@@ -178,20 +178,6 @@ export const App = observer(() => {
                             }}
                         />
                     </Row>
-                    <Row
-                        $style={{
-                            position: "fixed",
-                            bottom: 0,
-                            width: "100%",
-                            justifyContent: "center",
-                            marginBottom: "10px",
-                        }}
-                    >
-                        <footer>
-                            Made with ❤️ by{" "}
-                            <a href="https://nathancoulas.com">Nathan Coulas</a>
-                        </footer>
-                    </Row>
                 </Column>
             )}
         </>
