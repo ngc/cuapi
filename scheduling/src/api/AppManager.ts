@@ -150,7 +150,7 @@ export const AppManager = types
             const schedules: Schedule[] = getBestSchedules(
                 self.availableCourses,
                 100,
-                100,
+                300,
                 10
             );
             // purge all duplicate schedules
@@ -229,8 +229,6 @@ export const AppManager = types
                             let endHour = parseInt(end[0]);
                             let endMinute = parseInt(end[1]);
 
-                            const subject = course.subject_code.split(" ")[0];
-
                             events.push({
                                 startTime: {
                                     hour: startHour,
@@ -243,7 +241,10 @@ export const AppManager = types
                                 onClick: () => {},
                                 onHover: () => {},
                                 onLeave: () => {},
-                                color: stringToColor(subject),
+                                color: stringToColor(
+                                    course.related_offering ||
+                                        course.subject_code
+                                ),
                                 course: course,
                                 meeting: meeting,
                                 instructor: parseInstructor(meeting.instructor),
