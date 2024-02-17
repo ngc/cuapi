@@ -149,7 +149,7 @@ export const AppManager = types
         get bestSchedules() {
             const schedules: Schedule[] = getBestSchedules(
                 self.availableCourses,
-                100,
+                150,
                 300,
                 10
             );
