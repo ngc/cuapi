@@ -427,6 +427,10 @@ export const CourseSelectionModal = observer(
                         style: {
                             width: "40%",
                             height: "70vh",
+                            "@media screen and (max-width: 1024px)": {
+                                width: "90%",
+                                height: "90%",
+                            },
                         },
                     },
                 }}
