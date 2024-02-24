@@ -185,56 +185,6 @@ export const AppManager = types
         currentScheduleIndex: types.optional(types.number, 0),
         unwantedHours: types.optional(types.array(types.number), []), // 0-23
     })
-    .views((self) => ({
-        get availableCourses(): AvailableCourses {
-            let availableCourses: AvailableCourses = {};
-            for (let offering of self.selectedOfferings) {
-                availableCourses[offering.offering_name] =
-                    offering.allSectionModels;
-            }
-            return availableCourses;
-        },
-    }))
-    .views((self) => ({
-        get bestSchedules() {
-            const schedules: Schedule[] = getBestSchedules(
-                self.availableCourses,
-                150,
-                300,
-                10
-            );
-            // purge all duplicate schedules
-            // we will id a schedule by the CRNs of the courses
-
-            return schedules;
-        },
-    }))
-    .views((self) => ({
-        get selectedCourses() {
-            const bestSchedules = self.bestSchedules;
-
-            if (
-                self.bestSchedules.length === 0 &&
-                self.selectedOfferings.length !== 0
-            ) {
-                toaster.negative("No schedules found", {});
-                return [];
-            }
-
-            console.log(
-                "&&& Actual courses: ",
-                stringifySchedule(bestSchedules[self.currentScheduleIndex])
-            );
-
-            return flattenSchedule(bestSchedules[self.currentScheduleIndex]);
-        },
-    }))
-
-    .views((self) => ({
-        get courseCount() {
-            return self.selectedCourses().length;
-        },
-    }))
     .actions((self) => ({
         addOffering(offering: SnapshotIn<typeof RelatedOffering>) {
             const newOffering = RelatedOffering.create(offering);
@@ -252,28 +202,6 @@ export const AppManager = types
             }
 
             self.currentScheduleIndex = 0;
-        },
-    }))
-    .views((self) => ({
-        /**
-         * Convert the selected courses into a list of CalendarEvents
-         */
-        get toEvents(): CalendarEvent[] {
-            let events: CalendarEvent[] = [];
-            const selectedCourses = self.selectedCourses;
-
-            let debugString = "";
-            for (let course of selectedCourses) {
-                debugString += course.subject_code + " ";
-            }
-
-            console.log("&&& Selected courses: " + debugString);
-
-            for (let course of selectedCourses) {
-                events = events.concat(courseDetailsToEvent(course));
-            }
-
-            return events;
         },
     }))
     .actions((self) => ({
@@ -310,6 +238,89 @@ export const AppManager = types
             );
         },
     }))
+    .extend((self) => {
+        return {
+            views: {
+                get availableCourses(): AvailableCourses {
+                    let availableCourses: AvailableCourses = {};
+                    for (let offering of self.selectedOfferings) {
+                        availableCourses[offering.offering_name] =
+                            offering.allSectionModels;
+                    }
+                    return availableCourses;
+                },
+            },
+        };
+    })
+    .extend((self) => {
+        return {
+            views: {
+                get bestSchedules() {
+                    const schedules: Schedule[] = getBestSchedules(
+                        self.availableCourses,
+                        150,
+                        300,
+                        10
+                    );
+                    // purge all duplicate schedules
+                    // we will id a schedule by the CRNs of the courses
+
+                    return schedules;
+                },
+            },
+        };
+    })
+    .extend((self) => {
+        return {
+            views: {
+                get selectedCourses() {
+                    const bestSchedules = self.bestSchedules;
+
+                    if (
+                        self.bestSchedules.length === 0 &&
+                        self.selectedOfferings.length !== 0
+                    ) {
+                        toaster.negative("No schedules found", {});
+                        return [];
+                    }
+
+                    console.log(
+                        "&&& Actual courses: ",
+                        stringifySchedule(
+                            bestSchedules[self.currentScheduleIndex]
+                        )
+                    );
+
+                    return flattenSchedule(
+                        bestSchedules[self.currentScheduleIndex]
+                    );
+                },
+            },
+        };
+    })
+    .extend((self) => {
+        return {
+            views: {
+                get toEvents(): CalendarEvent[] {
+                    let events: CalendarEvent[] = [];
+                    const selectedCourses = self.selectedCourses;
+
+                    let debugString = "";
+                    for (let course of selectedCourses) {
+                        debugString += course.subject_code + " ";
+                    }
+
+                    console.log("&&& Selected courses: " + debugString);
+
+                    for (let course of selectedCourses) {
+                        events = events.concat(courseDetailsToEvent(course));
+                    }
+
+                    return events;
+                },
+            },
+        };
+    })
     .actions((self) => ({
         setTerm(term: (typeof TERMS)[number]) {
             self.selectedTerm = term;
