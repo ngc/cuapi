@@ -120,8 +120,6 @@ const courseDetailsToEvent = (course: CourseDetails): CalendarEvent[] => {
         return events;
     }
 
-    console.log(course);
-
     for (let meeting of course.meeting_details) {
         for (let day of meeting.days) {
             let dayIndex = days.indexOf(day);
@@ -284,13 +282,6 @@ export const AppManager = types
                         return [];
                     }
 
-                    console.log(
-                        "&&& Actual courses: ",
-                        stringifySchedule(
-                            bestSchedules[self.currentScheduleIndex]
-                        )
-                    );
-
                     return flattenSchedule(
                         bestSchedules[self.currentScheduleIndex]
                     );
@@ -309,8 +300,6 @@ export const AppManager = types
                     for (let course of selectedCourses) {
                         debugString += course.subject_code + " ";
                     }
-
-                    console.log("&&& Selected courses: " + debugString);
 
                     for (let course of selectedCourses) {
                         events = events.concat(courseDetailsToEvent(course));

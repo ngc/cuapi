@@ -206,15 +206,11 @@ export const purgeDuplicates = (schedules: Schedule[]): Schedule[] => {
     let seen = new Set<string>();
     for (let schedule of schedules) {
         const stringified = stringifySchedule(schedule);
-        // console.log("$$$", stringified);
         if (!seen.has(stringified)) {
-            console.log("Adding schedule", stringified, "to purged");
             purged.push(schedule);
             seen.add(stringified);
         }
     }
-
-    console.log("found " + (schedules.length - purged.length) + " duplicates");
 
     return purged;
 };
