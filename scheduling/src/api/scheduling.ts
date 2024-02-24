@@ -190,15 +190,15 @@ export const purgeConflicts = (schedules: Schedule[]): Schedule[] => {
 };
 
 export const stringifySchedule = memoize((schedule: Schedule): string => {
-    let stringified = "";
-    for (let courseAndTutorial of Object.values(schedule).sort()) {
-        stringified +=
-            courseAndTutorial.course?.CRN ?? (Math.random() * 1000).toString();
-        if (courseAndTutorial.tutorial) {
-            stringified += "| " + courseAndTutorial.tutorial?.CRN;
+    // iterate through all CourseAndTutorial objects
+    let globalIdList = [];
+    for (let subject_code in schedule) {
+        globalIdList.push(schedule[subject_code].course.subject_code);
+        if (schedule[subject_code].tutorial) {
+            globalIdList.push(schedule[subject_code].tutorial!.subject_code);
         }
     }
-    return stringified;
+    return globalIdList.sort().join(",");
 });
 
 export const purgeDuplicates = (schedules: Schedule[]): Schedule[] => {
@@ -206,11 +206,16 @@ export const purgeDuplicates = (schedules: Schedule[]): Schedule[] => {
     let seen = new Set<string>();
     for (let schedule of schedules) {
         const stringified = stringifySchedule(schedule);
+        // console.log("$$$", stringified);
         if (!seen.has(stringified)) {
+            console.log("Adding schedule", stringified, "to purged");
             purged.push(schedule);
             seen.add(stringified);
         }
     }
+
+    console.log("found " + (schedules.length - purged.length) + " duplicates");
+
     return purged;
 };
 
@@ -249,13 +254,11 @@ export const getBestSchedules = memoize(
                 population.push(generateRandomSchedule(availableCourses));
             }
         }
-        population = purgeDuplicates(population);
-
-        population.sort((a, b) => fitness(a) - fitness(b));
+        population = purgeDuplicates(purgeConflicts(population));
 
         // sort for most days off
         population.sort((a, b) => calculateDaysOff(b) - calculateDaysOff(a));
 
-        return purgeConflicts(population).slice(0, returnSize);
+        return population.slice(0, returnSize);
     }
 );

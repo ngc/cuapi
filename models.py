@@ -25,6 +25,31 @@ class SectionInformation:
         return {"section_type": self.section_type, "suitability": self.suitability}
 
 
+class SearchableCourse:
+    def __init__(
+        self,
+        registration_term: str,
+        related_offering: str,
+        long_title: str,
+        description: str,
+        sections: List[str],
+    ):
+        self.registration_term = registration_term
+        self.related_offering = related_offering
+        self.long_title = long_title
+        self.description = description
+        self.sections = sections
+
+    def __dict__(self):
+        return {
+            "registration_term": self.registration_term,
+            "related_offering": self.related_offering,
+            "long_title": self.long_title,
+            "description": self.description,
+            "sections": self.sections,
+        }
+
+
 class MeetingDetails:
     def __init__(
         self,
@@ -143,6 +168,9 @@ class DatabaseConnection:
 
     def initialize_db(self):
         with self.conn.cursor() as cur:
+
+            cur.execute("CREATE EXTENSION IF NOT EXISTS pg_trgm;")
+
             cur.execute(
                 """
                 CREATE TABLE IF NOT EXISTS courses (
@@ -183,6 +211,71 @@ class DatabaseConnection:
                 """
             )
             self.conn.commit()
+
+            # create a table called "searchable_courses" that will be used for full text search
+            # this table will have the following columns:
+            # 1. registration_term
+            # 2. related_offering
+            # 3. long_title
+            # 4. description
+            # 5. sections (this will be a jsonb column)
+            # sections will have be an array of json objects with the following properties:
+            # {
+            #  "section": "A GLOBAL ID",
+            # "tutorials": ["A GLOBAL ID", "ANOTHER GLOBAL ID"] # tutorials can be empty
+            # }
+            cur.execute(
+                """
+                CREATE TABLE IF NOT EXISTS searchable_courses (
+                    id SERIAL PRIMARY KEY,
+                    registration_term VARCHAR(255),
+                    related_offering VARCHAR(255),
+                    long_title VARCHAR(255),
+                    description TEXT,
+                    sections JSONB
+                );
+                """
+            )
+            self.conn.commit()
+
+            # use trigrams for fuzzy search
+            # also use ranked search with related_offering first
+            # long_title second
+            # and description third
+            # do not ever include sections in the search
+
+            # first, trigram index on related_offering and long_title
+            cur.execute(
+                """
+                CREATE INDEX IF NOT EXISTS searchable_courses_related_offering_trgm_idx ON searchable_courses USING gin (related_offering gin_trgm_ops);
+                """
+            )
+
+            cur.execute(
+                """
+                CREATE INDEX IF NOT EXISTS searchable_courses_long_title_trgm_idx ON searchable_courses USING gin (long_title gin_trgm_ops);
+                """
+            )
+
+            cur.execute(
+                """
+                CREATE INDEX IF NOT EXISTS searchable_courses_description_trgm_idx ON searchable_courses USING gin (description gin_trgm_ops);
+                """
+            )
+
+            # then, full text search index on long_title and description
+            cur.execute(
+                """
+                CREATE INDEX IF NOT EXISTS searchable_courses_fts_idx ON searchable_courses USING GIN (
+                    to_tsvector('english', long_title || ' ' || description)
+                );
+                """
+            )
+
+            self.conn.commit()
+
+    def get_connection(self):
+        return self.conn
 
     def search_courses(self, query: str, page: int, per_page=10):
         # use phraseto_tsquery to search for exact phrases
@@ -238,6 +331,47 @@ class DatabaseConnection:
             courses = []
             for row in rows:
                 courses.append(self.row_to_course_details(row))
+            return courses
+
+    def search_searchable_courses(self, term: str, query: str, page: int, per_page=10):
+        with self.conn.cursor() as cur:
+            # cur.execute(
+            #     """
+            #     SELECT * FROM searchable_courses
+            #     WHERE registration_term = %(term)s AND (related_offering ILIKE %(query)s OR long_title ILIKE %(query)s)
+            #     LIMIT %(per_page)s OFFSET %(offset)s;
+            #     """,
+            #     {
+            #         "term": term,
+            #         "query": f"%{query}%",
+            #         "per_page": per_page,
+            #         "offset": (page - 1) * per_page,
+            #     },
+            # )
+
+            # rank related_offering 5x higher than long_title
+            cur.execute(
+                """
+                SELECT *, ts_rank(to_tsvector('english', related_offering), plainto_tsquery(%(query)s))
+                + 5 * ts_rank(to_tsvector('english', long_title), plainto_tsquery(%(query)s))
+                AS relevance
+                FROM searchable_courses
+                WHERE registration_term = %(term)s AND (related_offering ILIKE %(query)s OR long_title ILIKE %(query)s)
+                ORDER BY relevance DESC
+                LIMIT %(per_page)s OFFSET %(offset)s;
+                """,
+                {
+                    "term": term,
+                    "query": f"%{query}%",
+                    "per_page": per_page,
+                    "offset": (page - 1) * per_page,
+                },
+            )
+
+            rows = cur.fetchall()
+            courses = []
+            for row in rows:
+                courses.append(self.row_to_searchable_course(row))
             return courses
 
     def course_exists(self, course: CourseDetails) -> bool:
@@ -423,6 +557,30 @@ class DatabaseConnection:
             for row in rows:
                 offerings.add(row[0])
             return sorted(list(offerings))
+
+    def row_to_searchable_course(self, row):
+        return SearchableCourse(
+            registration_term=row[1],
+            related_offering=row[2],
+            long_title=row[3],
+            description=row[4],
+            sections=row[5],
+        )
+
+    # all courses generator
+    def all_courses(self) -> CourseDetails:
+        with self.conn.cursor() as cur:
+            cur.execute("SELECT * FROM courses;")
+            rows = cur.fetchall()
+            for row in rows:
+                yield self.row_to_course_details(row)
+
+    def all_searchable_courses(self) -> SearchableCourse:
+        with self.conn.cursor() as cur:
+            cur.execute("SELECT * FROM searchable_courses;")
+            rows = cur.fetchall()
+            for row in rows:
+                yield self.row_to_searchable_course(row)
 
     def __enter__(self):
         return self

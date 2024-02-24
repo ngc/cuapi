@@ -1,3 +1,5 @@
+import { SectionModel } from "./AppManager";
+
 export interface SectionInformation {
     section_type: string;
     suitability: string;
@@ -33,6 +35,41 @@ export interface CourseDetails {
     meeting_details: MeetingDetails[]; // Array of MeetingDetails
 }
 
+/*
+class SearchableCourse:
+    def __init__(
+        self,
+        registration_term: str,
+        related_offering: str,
+        long_title: str,
+        description: str,
+        sections: List[str],
+    ):
+        self.registration_term = registration_term
+        self.related_offering = related_offering
+        self.long_title = long_title
+        self.description = description
+        self.sections = sections
+
+    def __dict__(self):
+        return {
+            "registration_term": self.registration_term,
+            "related_offering": self.related_offering,
+            "long_title": self.long_title,
+            "description": self.description,
+            "sections": self.sections,
+        }
+
+        */
+
+export interface SearchableCourse {
+    registration_term: string;
+    related_offering: string;
+    long_title: string;
+    description: string;
+    sections: SectionModel[];
+}
+
 type CourseOfferingName = string;
 
 const IS_DEV = window.location.hostname === "localhost";
@@ -50,7 +87,22 @@ api.add_resource(
 api.add_resource(
     SearchForOfferings, "/search-offerings/<string:term>/<string:search_term>"
 )
+api.add_resource(
+    SearchableCourseSearch, "/searchable-courses/<string:search_term>/<int:page>"
+)
+
 */
+
+export async function searchableCourseSearch(
+    term: string,
+    searchTerm: string,
+    page: number
+): Promise<SearchableCourse[]> {
+    const response = await fetch(
+        `${API_URL}searchable-courses/${term}/${searchTerm}/${page}`
+    );
+    return response.json();
+}
 
 export async function courseSearch(
     searchTerm: string,

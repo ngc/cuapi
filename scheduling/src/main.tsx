@@ -87,8 +87,14 @@ export const useAppManager = () => {
 
 const loadOrCreateAppManager = () => {
     const snapshot = localStorage.getItem("appManager");
+
     if (snapshot) {
-        return AppManager.create(JSON.parse(snapshot));
+        const parsedSnapshot = JSON.parse(snapshot!);
+        parsedSnapshot.currentScheduleIndex = 0;
+        parsedSnapshot.selectedCourses = [];
+        parsedSnapshot.toEvents = [];
+
+        return AppManager.create(parsedSnapshot);
     }
     return AppManager.create();
 };

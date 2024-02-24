@@ -3,12 +3,17 @@ import { Modal } from "baseui/modal";
 import { observer } from "mobx-react-lite";
 import { useState, useEffect } from "react";
 import { useStyletron } from "baseui";
-import { CourseDetails, offeringSearch } from "../api/api";
+import { CourseDetails, SearchableCourse, offeringSearch } from "../api/api";
 import { useAppManager } from "../main";
 import { Column, Row } from "./util";
 import { Button } from "baseui/button";
 import { Instance } from "mobx-state-tree";
-import { RelatedOffering, SectionModel, convert_term } from "../api/AppManager";
+import {
+    RelatedOffering,
+    SectionModel,
+    convert_term,
+    stringToColor,
+} from "../api/AppManager";
 import { SegmentedControl, Segment } from "baseui/segmented-control";
 import { Tooltip } from "@mui/material";
 import { TermPicker } from "./App";
@@ -133,13 +138,20 @@ export const CourseSelectionList = observer(
     }
 );
 
-export const SearchResultItem = (props: {
+export const _SearchResultItem = (props: {
     course: string;
     closeModal: () => void;
 }) => {
     const [css, _$theme] = useStyletron();
     const appManager = useAppManager();
     const course = props.course;
+
+    const courseSearchInformation = {
+        name: "Advanced Topics in Computer Science",
+        code: "COMP 4000",
+        description: "This course is about advanced topics in computer science",
+        numberOfOfferings: 3,
+    };
 
     return (
         <div
@@ -207,24 +219,168 @@ export const SearchResultItem = (props: {
                     section_models: sectionModels,
                 });
             }}
+            // card styling
             className={css({
-                height: "1em",
-                border: "1px dashed grey",
-                padding: "5px",
+                width: "100%",
+                border: "1px solid black",
+                padding: "10px",
+                cursor: "pointer",
+                display: "flex",
+                flexDirection: "column",
+                gap: "0px",
+                // align top
+                alignItems: "flex-start",
                 borderRadius: "5px",
-                transition: "0.2s",
-                width: "90%",
                 ":hover": {
                     backgroundColor: "rgba(0, 0, 0, 0.1)",
-                    cursor: "pointer",
-                    scale: 1.1,
                 },
             })}
         >
-            {props.course}
+            <Row
+                $style={{
+                    padding: "0px",
+                }}
+            >
+                <Column>
+                    <Row
+                        $style={{
+                            gap: "0px",
+                        }}
+                    >
+                        <p
+                            className={css({
+                                fontSize: "1.15em",
+                                fontWeight: "500",
+                                margin: "0px",
+                                padding: "0px",
+                            })}
+                        >
+                            {courseSearchInformation.name}
+                        </p>
+                    </Row>
+                    <Row
+                        $style={{
+                            color: "rgba(0, 0, 0, 0.5)",
+
+                            margin: "0px",
+                            padding: "0px",
+                        }}
+                    >
+                        <p
+                            className={css({
+                                margin: "0px",
+                                padding: "0px",
+                            })}
+                        >
+                            {courseSearchInformation.code} |{" "}
+                            {courseSearchInformation.numberOfOfferings}{" "}
+                            {"section" +
+                                (courseSearchInformation.numberOfOfferings > 1
+                                    ? "s"
+                                    : "")}
+                        </p>
+                    </Row>
+                </Column>
+            </Row>
+            <Row>{courseSearchInformation.description}</Row>
         </div>
     );
 };
+
+export const SearchResultItem = observer(
+    (props: { course: SearchableCourse; closeModal: () => void }) => {
+        const [css, $theme] = useStyletron();
+
+        const appManager = useAppManager();
+
+        return (
+            <div
+                onClick={async () => {
+                    props.closeModal();
+                    appManager.addOffering({
+                        offering_name: props.course.related_offering,
+                        section_models: props.course.sections,
+                    });
+                }}
+                // card styling
+                className={css({
+                    width: "100%",
+                    border: `1px solid black`,
+                    padding: "10px",
+                    cursor: "pointer",
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: "0px",
+                    // align top
+                    alignItems: "flex-start",
+                    borderRadius: "5px",
+                    ":hover": {
+                        backgroundColor: "rgba(0, 0, 0, 0.1)",
+                    },
+                })}
+            >
+                <Row
+                    $style={{
+                        padding: "0px",
+                    }}
+                >
+                    <Column>
+                        <Row
+                            $style={{
+                                gap: "0px",
+                            }}
+                        >
+                            <p
+                                className={css({
+                                    fontSize: "1.15em",
+                                    fontWeight: "500",
+                                    margin: "0px",
+                                    padding: "0px",
+                                })}
+                            >
+                                {props.course.long_title}
+                            </p>
+                        </Row>
+                        <Row
+                            $style={{
+                                color: "rgba(0, 0, 0, 0.5)",
+
+                                margin: "0px",
+                                padding: "0px",
+                            }}
+                        >
+                            <p
+                                className={css({
+                                    margin: "0px",
+                                    padding: "0px",
+                                })}
+                            >
+                                {props.course.related_offering} |{" "}
+                                {props.course.sections.length}{" "}
+                                {"section" +
+                                    (props.course.sections.length > 1
+                                        ? "s"
+                                        : "")}
+                            </p>
+                        </Row>
+                    </Column>
+                </Row>
+                <Row
+                    $style={{
+                        display: "flex",
+                        flexDirection: "column",
+                        justifyContent: "flex-start",
+                        alignContent: "flex-start",
+                        textAlign: "left",
+                        width: "100%",
+                    }}
+                >
+                    {props.course.description}
+                </Row>
+            </div>
+        );
+    }
+);
 
 export const CourseSelectionModal = observer(
     (props: {
@@ -232,15 +388,18 @@ export const CourseSelectionModal = observer(
         onClose: () => void;
         showCourses?: boolean;
     }) => {
-        const [searchResults, setSearchResults] = useState<string[]>([]);
+        const [searchResults, setSearchResults] = useState<SearchableCourse[]>(
+            []
+        );
         const [searchQuery, setSearchQuery] = useState("");
         const appManager = useAppManager();
         const [activeTab, setActiveTab] = useState(0);
 
         useEffect(() => {
             const fetchData = async () => {
-                const results = await appManager.fetchSearchForOfferings(
-                    searchQuery
+                const results = await appManager.fetchSearchableCourses(
+                    searchQuery,
+                    1
                 );
                 setSearchResults(results);
             };
@@ -252,12 +411,22 @@ export const CourseSelectionModal = observer(
                 overrides={{
                     Root: {
                         style: {
-                            ...(!props.showCourses ? { zIndex: 1000 } : {}),
+                            ...(!props.showCourses
+                                ? {
+                                      zIndex: 1000,
+                                  }
+                                : {}),
                         },
                     },
                     DialogContainer: {
                         style: {
                             backdropFilter: "blur(10px)",
+                        },
+                    },
+                    Dialog: {
+                        style: {
+                            width: "40%",
+                            height: "70vh",
                         },
                     },
                 }}
@@ -333,7 +502,7 @@ export const CourseSelectionModal = observer(
 
                     <Column
                         $style={{
-                            height: "200px",
+                            height: "350px",
                             overflowY: "scroll",
                             gap: "5px",
                         }}
@@ -341,13 +510,13 @@ export const CourseSelectionModal = observer(
                         {searchResults.map((course) => {
                             return (
                                 <Row
+                                    key={course.related_offering}
                                     $style={{
                                         width: "100%",
                                         justifyContent: "center",
                                     }}
                                 >
                                     <SearchResultItem
-                                        key={course}
                                         course={course}
                                         closeModal={props.onClose}
                                     />

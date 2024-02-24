@@ -128,7 +128,7 @@ export const App = observer(() => {
                                 }}
                             >
                                 <Suspense fallback={<div>Loading...</div>}>
-                                    <Calendar events={appManager.toEvents()} />
+                                    <Calendar />
                                 </Suspense>
                             </Column>
                         </Row>
@@ -173,7 +173,6 @@ export const App = observer(() => {
                     </Row>
                     <Row>
                         <Calendar
-                            events={appManager.toEvents()}
                             $style={{
                                 // set the scale on x to 1.1 and the scale on y to 1.5
                                 transform: "scale(1)",

@@ -104,6 +104,16 @@ class AddCourse(Resource):
         return "success"
 
 
+class SearchableCourseSearch(Resource):
+    def get(self, term: str, search_term: str, page: int):
+        dict_list = [
+            course.__dict__()
+            for course in db.search_searchable_courses(term, search_term, page)
+        ]
+
+        return jsonify(dict_list)
+
+
 # Add the resource to the api
 api.add_resource(Course, "/course/<string:term>/<string:crn>")
 api.add_resource(CourseSearch, "/search/<string:search_term>/<int:page>")
@@ -114,6 +124,10 @@ api.add_resource(
     SearchForOfferings, "/search-offerings/<string:term>/<string:search_term>"
 )
 api.add_resource(AddCourse, "/add-course")
+api.add_resource(
+    SearchableCourseSearch,
+    "/searchable-courses/<string:term>/<string:search_term>/<int:page>",
+)
 
 
 def run_dev_server():

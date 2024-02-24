@@ -1,15 +1,16 @@
 import { useStyletron } from "baseui";
-import { useState, useLayoutEffect } from "react";
+import { useState, useLayoutEffect, useEffect } from "react";
 import { CourseDetails, MeetingDetails } from "../api/api";
 import "./Calendar.css";
 import { Button } from "baseui/button";
 import { exportEventsToICS } from "../api/icsGenerator";
-import { observer } from "mobx-react-lite";
+import { observer, useLocalObservable, useObserver } from "mobx-react-lite";
 import { useAppManager } from "../main";
 import { Column, Row } from "./util";
 import { ChevronLeft, ChevronRight } from "baseui/icon";
 import { Modal } from "baseui/modal";
 import { StyleObject } from "styletron-react";
+import { onAction } from "mobx-state-tree";
 
 /**
  * The CalendarTime interface is used to represent a time in the calendar.
@@ -70,7 +71,6 @@ export interface CalendarEvent {
 }
 
 export interface CalendarProps {
-    events: CalendarEvent[];
     $style?: StyleObject;
     mobile?: boolean;
 }
@@ -472,7 +472,7 @@ export const Calendar = observer((props: CalendarProps) => {
                         >
                             <CalendarGrid mobile={props.mobile} />
                             <CalendarEventsOverlay
-                                events={props.events}
+                                events={appManager.toEvents}
                                 mobile={props.mobile}
                             />
                         </div>
@@ -481,7 +481,7 @@ export const Calendar = observer((props: CalendarProps) => {
                         <CalendarButtonRow
                             onExport={() => {
                                 const icsString = exportEventsToICS(
-                                    props.events
+                                    appManager.toEvents
                                 );
                                 const blob = new Blob([icsString], {
                                     type: "text/calendar",
@@ -540,7 +540,7 @@ export const Calendar = observer((props: CalendarProps) => {
                             hasNext={appManager.hasNextSchedule}
                             onCarletonCentral={() => {
                                 const crnSet = new Set<string>();
-                                for (let event of props.events) {
+                                for (let event of appManager.toEvents) {
                                     crnSet.add(event.course.CRN);
                                 }
                                 const crns = Array.from(crnSet);
