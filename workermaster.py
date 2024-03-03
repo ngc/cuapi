@@ -6,7 +6,7 @@ import requests
 import os
 from dotenv import load_dotenv
 
-URL = "https://cuapi.nathancoulas.com"
+URL = "http://localhost:3969"
 load_dotenv()
 
 
