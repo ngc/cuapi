@@ -12,6 +12,7 @@ import {
     CourseSelectionModal,
 } from "./CourseSelection";
 import { Column, Row } from "./util";
+import Wordmark from "../wordmark.svg";
 
 export const TermPicker = observer(() => {
     const appManager = useAppManager();
@@ -80,14 +81,12 @@ export const App = observer(() => {
                             paddingLeft: "10px",
                         }}
                     >
-                        <Row>
-                            <h1
-                                className={css({
-                                    textAlign: "center",
-                                })}
-                            >
-                                cuScheduling
-                            </h1>
+                        <Row
+                            $style={{
+                                padding: "10px",
+                            }}
+                        >
+                            <img src={Wordmark} alt="cuScheduling" />
                         </Row>
                         <div
                             className={css({
@@ -159,8 +158,19 @@ export const App = observer(() => {
                     }}
                 >
                     <Row>
-                        <Column>
-                            <h1>cuScheduling</h1>
+                        <Column
+                            $style={{
+                                justifyContent: "center",
+                                alignItems: "center",
+                            }}
+                        >
+                            <Row
+                                $style={{
+                                    padding: "10px",
+                                }}
+                            >
+                                <img src={Wordmark} alt="cuScheduling" />
+                            </Row>
                             <Row>
                                 <footer>
                                     Made with ❤️ by{" "}

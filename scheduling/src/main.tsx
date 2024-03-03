@@ -111,7 +111,7 @@ export const Background = () => {
                 width: "100%",
                 height: "100%",
                 zIndex: -1,
-                backgroundColor: "#C5DFF8",
+                backgroundColor: "#D5E3FF",
                 filter: "blur(10px)",
                 transform: "scale(1.1)",
             })}
@@ -120,13 +120,15 @@ export const Background = () => {
                 className={css({
                     // place in the top right upside down and mirrored
                     position: "absolute",
-                    top: "40",
-                    left: "0%",
+
+                    left: "-20%",
                     // flip the image
-                    transform: "scaleX(1)",
+                    transform: "scale(2)",
                     zIndex: 1,
+
+                    mixBlendMode: "color-burn",
                 })}
-                src={pinkGradient}
+                // src={pinkGradient}
                 alt="background"
             />
         </div>

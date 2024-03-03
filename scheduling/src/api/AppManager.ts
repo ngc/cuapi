@@ -260,8 +260,6 @@ export const AppManager = types
                         300,
                         10
                     );
-                    // purge all duplicate schedules
-                    // we will id a schedule by the CRNs of the courses
 
                     return schedules;
                 },

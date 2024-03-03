@@ -108,9 +108,26 @@ export const CourseSelectionList = observer(
                     margin: "20px",
                 }}
             >
-                <Row>
-                    <h3>Courses</h3>
-                </Row>
+                <Column>
+                    <a
+                        className={css({
+                            fontSize: "1.15em",
+                            fontWeight: "bold",
+                        })}
+                    >
+                        Courses
+                    </a>
+                    {/* small italized click to remove */}
+                    <a
+                        className={css({
+                            fontSize: "0.75em",
+                            fontStyle: "italic",
+                            color: "rgba(0, 0, 0, 0.5)",
+                        })}
+                    >
+                        Click to remove
+                    </a>
+                </Column>
 
                 <Column
                     $style={{
