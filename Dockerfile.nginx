@@ -1,0 +1,8 @@
+FROM nginx:latest
+
+RUN apt-get update && apt-get install -y netcat-openbsd
+
+COPY nginx.conf.template /etc/nginx/nginx.conf.template
+COPY start-nginx.sh /start-nginx.sh
+RUN chmod +x /start-nginx.sh
+CMD ["/bin/bash", "-c", "envsubst '$$FRONTEND_URL $$BACKEND_URL $$REDIS_URL' < /etc/nginx/nginx.conf.template > /etc/nginx/nginx.conf && /start-nginx.sh"]

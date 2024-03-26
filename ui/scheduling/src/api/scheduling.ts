@@ -190,15 +190,17 @@ export const purgeConflicts = (schedules: Schedule[]): Schedule[] => {
 };
 
 export const stringifySchedule = memoize((schedule: Schedule): string => {
-    let stringified = "";
-    for (let courseAndTutorial of Object.values(schedule).sort()) {
-        stringified +=
-            courseAndTutorial.course?.CRN ?? (Math.random() * 1000).toString();
-        if (courseAndTutorial.tutorial) {
-            stringified += "| " + courseAndTutorial.tutorial?.CRN;
+    // iterate through all CourseAndTutorial objects
+    if (Object.keys(schedule).length === 0) return "";
+    let globalIdList = [];
+    for (let subject_code in schedule) {
+        if (schedule?.[subject_code].course === undefined) continue;
+        globalIdList.push(schedule[subject_code].course.subject_code);
+        if (schedule[subject_code].tutorial) {
+            globalIdList.push(schedule[subject_code].tutorial!.subject_code);
         }
     }
-    return stringified;
+    return globalIdList.sort().join(",");
 });
 
 export const purgeDuplicates = (schedules: Schedule[]): Schedule[] => {
@@ -211,6 +213,7 @@ export const purgeDuplicates = (schedules: Schedule[]): Schedule[] => {
             seen.add(stringified);
         }
     }
+
     return purged;
 };
 
@@ -249,13 +252,11 @@ export const getBestSchedules = memoize(
                 population.push(generateRandomSchedule(availableCourses));
             }
         }
-        population = purgeDuplicates(population);
-
-        population.sort((a, b) => fitness(a) - fitness(b));
+        population = purgeDuplicates(purgeConflicts(population));
 
         // sort for most days off
         population.sort((a, b) => calculateDaysOff(b) - calculateDaysOff(a));
 
-        return purgeConflicts(population).slice(0, returnSize);
+        return population.slice(0, returnSize);
     }
 );

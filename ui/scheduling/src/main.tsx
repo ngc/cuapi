@@ -8,7 +8,6 @@ import { Instance, onSnapshot } from "mobx-state-tree";
 import { AppManager } from "./api/AppManager.ts";
 import { observer } from "mobx-react-lite";
 import { ToasterContainer } from "baseui/toast/toaster";
-import pinkGradient from "./pinkGradient.svg";
 import Modal from "baseui/modal/modal";
 import { Row } from "./components/util.tsx";
 
@@ -87,8 +86,14 @@ export const useAppManager = () => {
 
 const loadOrCreateAppManager = () => {
     const snapshot = localStorage.getItem("appManager");
+
     if (snapshot) {
-        return AppManager.create(JSON.parse(snapshot));
+        const parsedSnapshot = JSON.parse(snapshot!);
+        parsedSnapshot.currentScheduleIndex = 0;
+        parsedSnapshot.selectedCourses = [];
+        parsedSnapshot.toEvents = [];
+
+        return AppManager.create(parsedSnapshot);
     }
     return AppManager.create();
 };
@@ -105,7 +110,7 @@ export const Background = () => {
                 width: "100%",
                 height: "100%",
                 zIndex: -1,
-                backgroundColor: "#C5DFF8",
+                backgroundColor: "#D5E3FF",
                 filter: "blur(10px)",
                 transform: "scale(1.1)",
             })}
@@ -114,13 +119,15 @@ export const Background = () => {
                 className={css({
                     // place in the top right upside down and mirrored
                     position: "absolute",
-                    top: "40",
-                    left: "0%",
+
+                    left: "-20%",
                     // flip the image
-                    transform: "scaleX(1)",
+                    transform: "scale(2)",
                     zIndex: 1,
+
+                    mixBlendMode: "color-burn",
                 })}
-                src={pinkGradient}
+                // src={pinkGradient}
                 alt="background"
             />
         </div>

@@ -2,7 +2,12 @@
 
 from flask import Flask, jsonify, request
 from flask_restful import Resource, Api, reqparse
-from models import CourseDetails, DatabaseConnection, MeetingDetails, SectionInformation
+from src.models import (
+    CourseDetails,
+    DatabaseConnection,
+    MeetingDetails,
+    SectionInformation,
+)
 import json
 from flask_cors import CORS
 import os
@@ -21,35 +26,6 @@ load_dotenv()
 db = DatabaseConnection()
 db.initialize_db()
 api = Api(app)
-
-
-class Course(Resource):
-    def get(self, term, crn):
-        return jsonify(db.get_course(term, crn).__dict__())
-
-
-class CourseSearch(Resource):
-    def get(self, search_term, page: int):
-        dict_list = [
-            course.__dict__() for course in db.search_courses(search_term, page)
-        ]
-
-        return jsonify(dict_list)
-
-
-class OfferingSearch(Resource):
-    def get(self, term: str, subject: str, code: str, page: int):
-        dict_list = [
-            course.__dict__()
-            for course in db.search_offerings(term, subject, code, page)
-        ]
-
-        return jsonify(dict_list)
-
-
-class SearchForOfferings(Resource):
-    def get(self, term: str, search_term: str):
-        return db.search_for_offerings(term, search_term)
 
 
 class AddCourse(Resource):
@@ -104,16 +80,21 @@ class AddCourse(Resource):
         return "success"
 
 
-# Add the resource to the api
-api.add_resource(Course, "/course/<string:term>/<string:crn>")
-api.add_resource(CourseSearch, "/search/<string:search_term>/<int:page>")
-api.add_resource(
-    OfferingSearch, "/offering/<string:term>/<string:subject>/<string:code>/<int:page>"
-)
-api.add_resource(
-    SearchForOfferings, "/search-offerings/<string:term>/<string:search_term>"
-)
+class SearchableCourseSearch(Resource):
+    def get(self, term: str, search_term: str, page: int):
+        dict_list = [
+            course.__dict__()
+            for course in db.search_searchable_courses(term, search_term, page)
+        ]
+
+        return jsonify(dict_list)
+
+
 api.add_resource(AddCourse, "/add-course")
+api.add_resource(
+    SearchableCourseSearch,
+    "/searchable-courses/<string:term>/<string:search_term>/<int:page>",
+)
 
 
 def run_dev_server():

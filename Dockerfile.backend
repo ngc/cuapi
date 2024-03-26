@@ -1,0 +1,33 @@
+# Use an official Python runtime as a parent image
+FROM python:3.11-slim
+
+# Set the working directory in the container
+WORKDIR /usr/src/app
+
+COPY requirements.txt .
+
+# Install any needed packages specified in requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt
+
+EXPOSE 3969
+
+# Define environment variables
+# Use environment variables from docker-compose.yml
+
+# run wget and download https://raw.githubusercontent.com/vishnubob/wait-for-it/master/wait-for-it.sh
+RUN apt-get update && apt-get install -y wget
+RUN wget https://raw.githubusercontent.com/vishnubob/wait-for-it/master/wait-for-it.sh
+RUN chmod +x wait-for-it.sh
+
+COPY . .
+
+ARG WORKER_KEY
+ARG POSTGRES_HOST
+ARG POSTGRES_USER
+ARG POSTGRES_PASSWORD
+ARG POSTGRES_DB
+ENV WORKER_KEY=$WORKER_KEY
+ENV POSTGRES_HOST=$POSTGRES_HOST
+ENV POSTGRES_USER=$POSTGRES_USER
+ENV POSTGRES_PASSWORD=$POSTGRES_PASSWORD
+ENV POSTGRES_DB=$POSTGRES_DB

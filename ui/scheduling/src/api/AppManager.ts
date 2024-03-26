@@ -4,6 +4,7 @@ import {
     courseSearch,
     offeringSearch,
     searchForOfferings,
+    searchableCourseSearch,
 } from "./api";
 
 import { CalendarEvent } from "../components/Calendar";
@@ -82,7 +83,7 @@ export const parseInstructor = (
     return name.join(" ");
 };
 
-const stringToColor = (str: string): string => {
+export const stringToColor = (str: string): string => {
     // DJB2 hash function
     let hash = 5381;
     for (let i = 0; i < str.length; i++) {
@@ -110,6 +111,52 @@ export interface SectionModel {
     tutorials: CourseDetails[];
 }
 
+const courseDetailsToEvent = (course: CourseDetails): CalendarEvent[] => {
+    const days = ["Mon", "Tue", "Wed", "Thu", "Fri"];
+    const events: CalendarEvent[] = [];
+
+    if (course === undefined) {
+        return events;
+    }
+
+    for (let meeting of course.meeting_details) {
+        for (let day of meeting.days) {
+            let dayIndex = days.indexOf(day);
+            if (dayIndex !== -1) {
+                // meeting time is in the format "HH:MM - HH:MM"
+                let times = meeting.time.split(" - ");
+                let start = times[0].split(":");
+                let end = times[1].split(":");
+                let startHour = parseInt(start[0]);
+                let startMinute = parseInt(start[1]);
+                let endHour = parseInt(end[0]);
+                let endMinute = parseInt(end[1]);
+
+                events.push({
+                    startTime: {
+                        hour: startHour,
+                        minute: startMinute,
+                    },
+                    endTime: { hour: endHour, minute: endMinute },
+                    day: dayIndex,
+                    title: course.subject_code,
+                    body: course.long_title,
+                    onClick: () => {},
+                    onHover: () => {},
+                    onLeave: () => {},
+                    color: stringToColor(
+                        course.related_offering || course.subject_code || ""
+                    ),
+                    course: course,
+                    meeting: meeting,
+                    instructor: parseInstructor(meeting.instructor),
+                });
+            }
+        }
+    }
+    return events;
+};
+
 export const RelatedOffering = types
     .model({
         offering_name: types.string,
@@ -135,52 +182,6 @@ export const AppManager = types
         currentScheduleIndex: types.optional(types.number, 0),
         unwantedHours: types.optional(types.array(types.number), []), // 0-23
     })
-    .views((self) => ({
-        get availableCourses(): AvailableCourses {
-            let availableCourses: AvailableCourses = {};
-            for (let offering of self.selectedOfferings) {
-                availableCourses[offering.offering_name] =
-                    offering.allSectionModels;
-            }
-            return availableCourses;
-        },
-    }))
-    .views((self) => ({
-        get bestSchedules() {
-            const schedules: Schedule[] = getBestSchedules(
-                self.availableCourses,
-                150,
-                300,
-                10
-            );
-            // purge all duplicate schedules
-            // we will id a schedule by the CRNs of the courses
-
-            return schedules;
-        },
-    }))
-    .views((self) => ({
-        get selectedCourses() {
-            const bestSchedules = self.bestSchedules;
-            if (
-                self.selectedOfferings.length !== 0 &&
-                bestSchedules.length === 0
-            ) {
-                toaster.negative("No schedules found", {});
-                return [];
-            }
-            const schedule: Schedule =
-                bestSchedules[self.currentScheduleIndex] || bestSchedules[0];
-
-            return flattenSchedule(schedule);
-        },
-    }))
-
-    .views((self) => ({
-        get courseCount() {
-            return self.selectedCourses.length;
-        },
-    }))
     .actions((self) => ({
         addOffering(offering: SnapshotIn<typeof RelatedOffering>) {
             const newOffering = RelatedOffering.create(offering);
@@ -198,67 +199,6 @@ export const AppManager = types
             }
 
             self.currentScheduleIndex = 0;
-        },
-    }))
-    .views((self) => ({
-        /**
-         * Convert the selected courses into a list of CalendarEvents
-         */
-        toEvents(): CalendarEvent[] {
-            let events: CalendarEvent[] = [];
-
-            const days = ["Mon", "Tue", "Wed", "Thu", "Fri"];
-
-            const courseDetailsToEvent = (course: CourseDetails) => {
-                if (course === undefined) {
-                    return;
-                }
-
-                console.log(course);
-
-                for (let meeting of course.meeting_details) {
-                    for (let day of meeting.days) {
-                        let dayIndex = days.indexOf(day);
-                        if (dayIndex !== -1) {
-                            // meeting time is in the format "HH:MM - HH:MM"
-                            let times = meeting.time.split(" - ");
-                            let start = times[0].split(":");
-                            let end = times[1].split(":");
-                            let startHour = parseInt(start[0]);
-                            let startMinute = parseInt(start[1]);
-                            let endHour = parseInt(end[0]);
-                            let endMinute = parseInt(end[1]);
-
-                            events.push({
-                                startTime: {
-                                    hour: startHour,
-                                    minute: startMinute,
-                                },
-                                endTime: { hour: endHour, minute: endMinute },
-                                day: dayIndex,
-                                title: course.subject_code,
-                                body: course.long_title,
-                                onClick: () => {},
-                                onHover: () => {},
-                                onLeave: () => {},
-                                color: stringToColor(
-                                    course.related_offering ||
-                                        course.subject_code
-                                ),
-                                course: course,
-                                meeting: meeting,
-                                instructor: parseInstructor(meeting.instructor),
-                            });
-                        }
-                    }
-                }
-            };
-
-            for (let course of self.selectedCourses) {
-                courseDetailsToEvent(course);
-            }
-
-            return events;
         },
     }))
     .actions((self) => ({
@@ -287,7 +227,81 @@ export const AppManager = types
                 searchTerm
             );
         },
+        async fetchSearchableCourses(searchTerm: string, page: number) {
+            return await searchableCourseSearch(
+                convert_term(self.selectedTerm),
+                searchTerm,
+                page
+            );
+        },
     }))
+    .extend((self) => {
+        return {
+            views: {
+                get availableCourses(): AvailableCourses {
+                    let availableCourses: AvailableCourses = {};
+                    for (let offering of self.selectedOfferings) {
+                        availableCourses[offering.offering_name] =
+                            offering.allSectionModels;
+                    }
+                    return availableCourses;
+                },
+            },
+        };
+    })
+    .extend((self) => {
+        return {
+            views: {
+                get bestSchedules() {
+                    const schedules: Schedule[] = getBestSchedules(
+                        self.availableCourses,
+                        150,
+                        300,
+                        10
+                    );
+
+                    return schedules;
+                },
+            },
+        };
+    })
+    .extend((self) => {
+        return {
+            views: {
+                get selectedCourses() {
+                    const bestSchedules = self.bestSchedules;
+
+                    if (
+                        self.bestSchedules.length === 0 &&
+                        self.selectedOfferings.length !== 0
+                    ) {
+                        toaster.negative("No schedules found", {});
+                        return [];
+                    }
+
+                    return flattenSchedule(
+                        bestSchedules[self.currentScheduleIndex]
+                    );
+                },
+            },
+        };
+    })
+    .extend((self) => {
+        return {
+            views: {
+                get toEvents(): CalendarEvent[] {
+                    let events: CalendarEvent[] = [];
+                    const selectedCourses = self.selectedCourses;
+
+                    for (let course of selectedCourses) {
+                        events = events.concat(courseDetailsToEvent(course));
+                    }
+
+                    return events;
+                },
+            },
+        };
+    })
     .actions((self) => ({
         setTerm(term: (typeof TERMS)[number]) {
             self.selectedTerm = term;

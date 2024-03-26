@@ -12,6 +12,7 @@ import {
     CourseSelectionModal,
 } from "./CourseSelection";
 import { Column, Row } from "./util";
+import Wordmark from "../Wordmark.svg";
 
 export const TermPicker = observer(() => {
     const appManager = useAppManager();
@@ -49,7 +50,6 @@ export const TermPicker = observer(() => {
 export const App = observer(() => {
     const [css, _$theme] = useStyletron();
     const [isOpen, setIsOpen] = useState(false);
-    const appManager = useAppManager();
 
     const [isMobile, setIsMobile] = useState(
         window.innerWidth <= 768 || window.innerHeight <= 768
@@ -80,14 +80,12 @@ export const App = observer(() => {
                             paddingLeft: "10px",
                         }}
                     >
-                        <Row>
-                            <h1
-                                className={css({
-                                    textAlign: "center",
-                                })}
-                            >
-                                cuScheduling
-                            </h1>
+                        <Row
+                            $style={{
+                                padding: "10px",
+                            }}
+                        >
+                            <img src={Wordmark} alt="cuScheduling" />
                         </Row>
                         <div
                             className={css({
@@ -128,7 +126,7 @@ export const App = observer(() => {
                                 }}
                             >
                                 <Suspense fallback={<div>Loading...</div>}>
-                                    <Calendar events={appManager.toEvents()} />
+                                    <Calendar />
                                 </Suspense>
                             </Column>
                         </Row>
@@ -159,8 +157,19 @@ export const App = observer(() => {
                     }}
                 >
                     <Row>
-                        <Column>
-                            <h1>cuScheduling</h1>
+                        <Column
+                            $style={{
+                                justifyContent: "center",
+                                alignItems: "center",
+                            }}
+                        >
+                            <Row
+                                $style={{
+                                    padding: "10px",
+                                }}
+                            >
+                                <img src={Wordmark} alt="cuScheduling" />
+                            </Row>
                             <Row>
                                 <footer>
                                     Made with ❤️ by{" "}
@@ -173,7 +182,6 @@ export const App = observer(() => {
                     </Row>
                     <Row>
                         <Calendar
-                            events={appManager.toEvents()}
                             $style={{
                                 // set the scale on x to 1.1 and the scale on y to 1.5
                                 transform: "scale(1)",

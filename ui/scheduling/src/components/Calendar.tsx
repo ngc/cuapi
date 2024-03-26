@@ -70,7 +70,6 @@ export interface CalendarEvent {
 }
 
 export interface CalendarProps {
-    events: CalendarEvent[];
     $style?: StyleObject;
     mobile?: boolean;
 }
@@ -472,7 +471,7 @@ export const Calendar = observer((props: CalendarProps) => {
                         >
                             <CalendarGrid mobile={props.mobile} />
                             <CalendarEventsOverlay
-                                events={props.events}
+                                events={appManager.toEvents}
                                 mobile={props.mobile}
                             />
                         </div>
@@ -481,7 +480,7 @@ export const Calendar = observer((props: CalendarProps) => {
                         <CalendarButtonRow
                             onExport={() => {
                                 const icsString = exportEventsToICS(
-                                    props.events
+                                    appManager.toEvents
                                 );
                                 const blob = new Blob([icsString], {
                                     type: "text/calendar",
@@ -540,7 +539,7 @@ export const Calendar = observer((props: CalendarProps) => {
                             hasNext={appManager.hasNextSchedule}
                             onCarletonCentral={() => {
                                 const crnSet = new Set<string>();
-                                for (let event of props.events) {
+                                for (let event of appManager.toEvents) {
                                     crnSet.add(event.course.CRN);
                                 }
                                 const crns = Array.from(crnSet);

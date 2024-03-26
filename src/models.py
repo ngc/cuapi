@@ -25,6 +25,31 @@ class SectionInformation:
         return {"section_type": self.section_type, "suitability": self.suitability}
 
 
+class SearchableCourse:
+    def __init__(
+        self,
+        registration_term: str,
+        related_offering: str,
+        long_title: str,
+        description: str,
+        sections: List[str],
+    ):
+        self.registration_term = registration_term
+        self.related_offering = related_offering
+        self.long_title = long_title
+        self.description = description
+        self.sections = sections
+
+    def __dict__(self):
+        return {
+            "registration_term": self.registration_term,
+            "related_offering": self.related_offering,
+            "long_title": self.long_title,
+            "description": self.description,
+            "sections": self.sections,
+        }
+
+
 class MeetingDetails:
     def __init__(
         self,
@@ -129,81 +154,88 @@ class CourseDetails:
     def __str__(self):
         return str(self.__dict__)
 
+    def get_section_key(self):
+        split_subject_code = self.subject_code.split(" ")
+        return split_subject_code[2][0] if len(split_subject_code) > 2 else "$"
+
+    def isLecture(self):
+        lecture_aliases = [
+            "Lecture",
+            "Seminar",
+            "Studio",
+            "Comprehensive",
+            "Practicum",
+            "Other",
+            "Workshop",
+            "PhD Thesis",
+            "Masters Thesis",
+            "Directed Studies",
+            "Honours Essay",
+            "Problem Analysis",
+        ]
+        return self.schedule_type in lecture_aliases
+
 
 class DatabaseConnection:
     def __init__(self) -> None:
         load_dotenv()
 
         self.conn = psycopg2.connect(
-            host=os.environ.get("DB_HOST"),
-            database=os.environ.get("DB_NAME"),
-            user=os.environ.get("DB_USER"),
-            password=os.environ.get("DB_PASSWORD"),
+            host=os.environ.get("POSTGRES_HOST"),
+            database=os.environ.get("POSTGRES_DB"),
+            user=os.environ.get("POSTGRES_USER"),
+            password=os.environ.get("POSTGRES_PASSWORD"),
         )
 
     def initialize_db(self):
         with self.conn.cursor() as cur:
+
+            cur.execute("CREATE EXTENSION IF NOT EXISTS pg_trgm;")
+
             cur.execute(
                 """
-                CREATE TABLE IF NOT EXISTS courses (
+                CREATE TABLE IF NOT EXISTS searchable_courses (
                     id SERIAL PRIMARY KEY,
                     registration_term VARCHAR(255),
-                    crn VARCHAR(255),
-                    subject_code VARCHAR(255),
+                    related_offering VARCHAR(255),
                     long_title VARCHAR(255),
-                    short_title VARCHAR(255),
-                    course_description TEXT,
-                    course_credit_value FLOAT,
-                    schedule_type VARCHAR(255),
-                    session_info VARCHAR(255),
-                    registration_status VARCHAR(255),
-                    section_information JSONB,
-                    year_in_program_restriction VARCHAR(255),
-                    level_restriction VARCHAR(255),
-                    degree_restriction VARCHAR(255),
-                    major_restriction VARCHAR(255),
-                    program_restrictions VARCHAR(255),
-                    department_restriction VARCHAR(255),
-                    faculty_restriction VARCHAR(255),
-                    meeting_details JSONB,
-                    global_id VARCHAR(255),
-                    related_offering VARCHAR(255)
+                    description TEXT,
+                    sections JSONB
                 );
                 """
             )
             self.conn.commit()
 
-            # also setup full text search using a GIN index on the following columns:
-            # long_title, short_title, course_description and meeting_details
             cur.execute(
                 """
-                CREATE INDEX IF NOT EXISTS courses_fts_idx ON courses USING GIN (
-                    to_tsvector('english', long_title || ' ' || short_title || ' ' || subject_code || ' ' || meeting_details)
+                CREATE INDEX IF NOT EXISTS searchable_courses_related_offering_trgm_idx ON searchable_courses USING gin (related_offering gin_trgm_ops);
+                """
+            )
+
+            cur.execute(
+                """
+                CREATE INDEX IF NOT EXISTS searchable_courses_long_title_trgm_idx ON searchable_courses USING gin (long_title gin_trgm_ops);
+                """
+            )
+
+            cur.execute(
+                """
+                CREATE INDEX IF NOT EXISTS searchable_courses_description_trgm_idx ON searchable_courses USING gin (description gin_trgm_ops);
+                """
+            )
+
+            cur.execute(
+                """
+                CREATE INDEX IF NOT EXISTS searchable_courses_fts_idx ON searchable_courses USING GIN (
+                    to_tsvector('english', long_title || ' ' || description)
                 );
                 """
             )
+
             self.conn.commit()
 
-    def search_courses(self, query: str, page: int, per_page=10):
-        # use phraseto_tsquery to search for exact phrases
-
-        with self.conn.cursor() as cur:
-            cur.execute(
-                """
-                SELECT *, ts_rank(to_tsvector('english', long_title || ' ' || short_title || ' ' || subject_code || ' ' || meeting_details), plainto_tsquery(%(query)s)) AS relevance
-                FROM courses
-                WHERE to_tsvector('english', long_title || ' ' || short_title || ' ' || subject_code || ' ' || meeting_details) @@ plainto_tsquery(%(query)s)
-                ORDER BY relevance DESC
-                LIMIT %(per_page)s OFFSET %(offset)s;
-                """,
-                {"query": query, "per_page": per_page, "offset": (page - 1) * per_page},
-            )
-
-            rows = cur.fetchall()
-            courses = []
-            for row in rows:
-                courses.append(self.row_to_course_details(row))
-            return courses
+    def get_connection(self):
+        return self.conn
 
     def delete_course(self, course: CourseDetails):
         with self.conn.cursor() as cur:
@@ -215,20 +247,21 @@ class DatabaseConnection:
             )
             self.conn.commit()
 
-    def search_offerings(
-        self, term: str, subject: str, code: str, page: int, per_page=10
-    ):
-        # search the related_offering column for "{subject} {code}"
+    def search_searchable_courses(self, term: str, query: str, page: int, per_page=10):
         with self.conn.cursor() as cur:
             cur.execute(
                 """
-                SELECT * FROM courses
-                WHERE registration_term = %(term)s AND related_offering = %(related_offering)s
+                SELECT *, ts_rank(to_tsvector('english', related_offering), plainto_tsquery(%(query)s))
+                + 5 * ts_rank(to_tsvector('english', long_title), plainto_tsquery(%(query)s))
+                AS relevance
+                FROM searchable_courses
+                WHERE registration_term = %(term)s AND (related_offering ILIKE %(query)s OR long_title ILIKE %(query)s)
+                ORDER BY relevance DESC
                 LIMIT %(per_page)s OFFSET %(offset)s;
                 """,
                 {
                     "term": term,
-                    "related_offering": f"{subject} {code}",
+                    "query": f"%{query}%",
                     "per_page": per_page,
                     "offset": (page - 1) * per_page,
                 },
@@ -237,89 +270,143 @@ class DatabaseConnection:
             rows = cur.fetchall()
             courses = []
             for row in rows:
-                courses.append(self.row_to_course_details(row))
+                courses.append(self.row_to_searchable_course(row))
             return courses
 
     def course_exists(self, course: CourseDetails) -> bool:
         with self.conn.cursor() as cur:
+            # search for the searchable course by related_offering and registration_term
             cur.execute(
                 """
-                SELECT * FROM courses WHERE global_id = %(global_id)s;
+                SELECT * FROM searchable_courses WHERE related_offering = %(related_offering)s AND registration_term = %(registration_term)s;
                 """,
                 course.__dict__(),
             )
             rows = cur.fetchall()
-            return len(rows) > 0
+            if len(rows) == 0:
+                return False
+            searchableCourse = self.row_to_searchable_course(rows[0])
+            for section in searchableCourse.sections:
+                for course in section["courses"]:
+                    if course["CRN"] == course.CRN:
+                        return True
+                for tutorial in section["tutorials"]:
+                    if tutorial["CRN"] == course.CRN:
+                        return True
+
+            return False
 
     def update_course(self, course: CourseDetails):
-        self.delete_course(course)
-        self.insert_course(course)
+        # get the searchable course
+        with self.conn.cursor() as cur:
+            cur.execute(
+                """
+                SELECT * FROM searchable_courses WHERE related_offering = %(related_offering)s AND registration_term = %(registration_term)s;
+                """,
+                course.__dict__(),
+            )
+            rows = cur.fetchall()
+            searchableCourse = self.row_to_searchable_course(rows[0])
+
+            sections = searchableCourse.sections
+            # now we want to iterate through the sections and find the section that the course is in, whether its in the courses or tutorials lists and then the exact index of the course in that list
+            for section in sections:
+                for i, course in enumerate(section["courses"]):
+                    if course["CRN"] == course.CRN:
+                        section["courses"][i] = course.__dict__()
+                        break
+                for i, tutorial in enumerate(section["tutorials"]):
+                    if tutorial["CRN"] == course.CRN:
+                        section["tutorials"][i] = course.__dict__()
+                        break
+
+            # now update the searchable course
+            cur.execute(
+                """
+                UPDATE searchable_courses SET sections = %s WHERE related_offering = %s AND registration_term = %s;
+                """,
+                (
+                    json.dumps(sections),
+                    course.related_offering,
+                    course.registration_term,
+                ),
+            )
 
     def insert_course(self, course: CourseDetails):
         with self.conn.cursor() as cur:
             if self.course_exists(course):
+                print("Course already exists")
                 # overrite the existing course with the new one
                 self.update_course(course)
                 return
 
-            course_dict = course.__dict__()
-            course_dict["section_information"] = json.dumps(
-                course_dict["section_information"]
-            )
-
-            course_dict["meeting_details"] = json.dumps(course_dict["meeting_details"])
-
+            # if the course does not exist we need to insert it into the searchable_courses table
+            # find the related_offering in the searchable_courses table
             cur.execute(
                 """
-                INSERT INTO courses (
-                    registration_term,
-                    crn,
-                    subject_code,
-                    long_title,
-                    short_title,
-                    course_description,
-                    course_credit_value,
-                    schedule_type,
-                    session_info,
-                    registration_status,
-                    section_information,
-                    year_in_program_restriction,
-                    level_restriction,
-                    degree_restriction,
-                    major_restriction,
-                    program_restrictions,
-                    department_restriction,
-                    faculty_restriction,
-                    meeting_details,
-                    global_id,
-                    related_offering
-                )
-                VALUES (
-                    %(registration_term)s,
-                    %(CRN)s,
-                    %(subject_code)s,
-                    %(long_title)s,
-                    %(short_title)s,
-                    %(course_description)s,
-                    %(course_credit_value)s,
-                    %(schedule_type)s,
-                    %(session_info)s,
-                    %(registration_status)s,
-                    %(section_information)s,
-                    %(year_in_program_restriction)s,
-                    %(level_restriction)s,
-                    %(degree_restriction)s,
-                    %(major_restriction)s,
-                    %(program_restrictions)s,
-                    %(department_restriction)s,
-                    %(faculty_restriction)s,
-                    %(meeting_details)s,
-                    %(global_id)s,
-                    %(related_offering)s
-                );
+                SELECT * FROM searchable_courses WHERE related_offering = %(related_offering)s AND registration_term = %(registration_term)s;
                 """,
-                course_dict,
+                course.__dict__(),
             )
+            rows = cur.fetchall()
+            print(
+                f"Searched for {course.related_offering} in searchable_courses table and got {len(rows)} results"
+            )
+
+            sections = []
+            if len(rows) > 0:
+                # if the related_offering exists in the searchable_courses table we need to get the sections
+                sections = rows[0][5]
+
+            sectionKey = course.get_section_key()
+            courseOrTutorial = "courses" if course.isLecture() else "tutorials"
+
+            notFound = True
+            for i, section in enumerate(sections):
+                if section["section_key"] == sectionKey:
+
+                    sections[i][courseOrTutorial].append(course.__dict__())
+                    notFound = False
+                    break
+            if notFound:
+                # if the section does not exist we need to add it
+                sections.append(
+                    {
+                        "section_key": sectionKey,
+                        "courses": [],
+                        "tutorials": [],
+                    }
+                )
+                sections[-1][courseOrTutorial].append(course.__dict__())
+
+            # now we want to insert or update the searchable_course
+            if len(rows) > 0:
+                print(f"Updating {course.related_offering} in searchable_courses")
+                cur.execute(
+                    """
+                    UPDATE searchable_courses SET sections = %s WHERE related_offering = %s AND registration_term = %s;
+                    """,
+                    (
+                        json.dumps(sections),
+                        course.related_offering,
+                        course.registration_term,
+                    ),
+                )
+            else:
+                print(f"Inserting {course.related_offering} into searchable_courses")
+                cur.execute(
+                    """
+                    INSERT INTO searchable_courses (registration_term, related_offering, long_title, description, sections) VALUES (%s, %s, %s, %s, %s);
+                    """,
+                    (
+                        course.registration_term,
+                        course.related_offering,
+                        course.long_title,
+                        course.course_description,
+                        json.dumps(sections),
+                    ),
+                )
+
             self.conn.commit()
 
     def row_to_course_details(self, row):
@@ -423,6 +510,30 @@ class DatabaseConnection:
             for row in rows:
                 offerings.add(row[0])
             return sorted(list(offerings))
+
+    def row_to_searchable_course(self, row):
+        return SearchableCourse(
+            registration_term=row[1],
+            related_offering=row[2],
+            long_title=row[3],
+            description=row[4],
+            sections=row[5],
+        )
+
+    # all courses generator
+    def all_courses(self) -> CourseDetails:
+        with self.conn.cursor() as cur:
+            cur.execute("SELECT * FROM courses;")
+            rows = cur.fetchall()
+            for row in rows:
+                yield self.row_to_course_details(row)
+
+    def all_searchable_courses(self) -> SearchableCourse:
+        with self.conn.cursor() as cur:
+            cur.execute("SELECT * FROM searchable_courses;")
+            rows = cur.fetchall()
+            for row in rows:
+                yield self.row_to_searchable_course(row)
 
     def __enter__(self):
         return self
