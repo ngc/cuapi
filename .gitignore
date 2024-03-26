@@ -8,3 +8,4 @@ env/
 jobs/
 .env
 node_modules
+docker-compose.yml

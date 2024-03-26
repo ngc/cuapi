@@ -1,0 +1,26 @@
+FROM python:3.11-slim
+
+# Set the working directory in the container
+WORKDIR /usr/src/app
+
+# copy requirements.txt
+COPY requirements.txt .
+
+# Install any needed packages specified in requirements.txt
+RUN pip install -r requirements.txt
+
+# Copy the current directory contents into the container at /usr/src/app
+
+# Define environment variables
+# Use environment variables from docker-compose.yml
+
+# run wget and download https://raw.githubusercontent.com/vishnubob/wait-for-it/master/wait-for-it.sh
+RUN apt-get update && apt-get install -y wget
+RUN wget https://raw.githubusercontent.com/vishnubob/wait-for-it/master/wait-for-it.sh
+RUN chmod +x wait-for-it.sh
+COPY . .
+
+ENV PYTHONPATH=/usr/src/app/src
+
+# Define environment variables
+ENV IS_BEAT=true

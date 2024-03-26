@@ -13,7 +13,6 @@ import {
     Schedule,
     flattenSchedule,
     getBestSchedules,
-    stringifySchedule,
 } from "./scheduling";
 import { toaster } from "baseui/toast";
 
@@ -146,7 +145,7 @@ const courseDetailsToEvent = (course: CourseDetails): CalendarEvent[] => {
                     onHover: () => {},
                     onLeave: () => {},
                     color: stringToColor(
-                        course.related_offering || course.subject_code
+                        course.related_offering || course.subject_code || ""
                     ),
                     course: course,
                     meeting: meeting,
@@ -293,11 +292,6 @@ export const AppManager = types
                 get toEvents(): CalendarEvent[] {
                     let events: CalendarEvent[] = [];
                     const selectedCourses = self.selectedCourses;
-
-                    let debugString = "";
-                    for (let course of selectedCourses) {
-                        debugString += course.subject_code + " ";
-                    }
 
                     for (let course of selectedCourses) {
                         events = events.concat(courseDetailsToEvent(course));

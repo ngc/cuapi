@@ -191,8 +191,10 @@ export const purgeConflicts = (schedules: Schedule[]): Schedule[] => {
 
 export const stringifySchedule = memoize((schedule: Schedule): string => {
     // iterate through all CourseAndTutorial objects
+    if (Object.keys(schedule).length === 0) return "";
     let globalIdList = [];
     for (let subject_code in schedule) {
+        if (schedule?.[subject_code].course === undefined) continue;
         globalIdList.push(schedule[subject_code].course.subject_code);
         if (schedule[subject_code].tutorial) {
             globalIdList.push(schedule[subject_code].tutorial!.subject_code);

@@ -5,13 +5,15 @@ import random
 import json
 from selenium import webdriver
 from bs4 import BeautifulSoup
-from selenium.webdriver.chrome.service import Service as ChromeService
+from selenium.webdriver.chrome.service import Service
 from webdriver_manager.chrome import ChromeDriverManager
+from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 
-from models import CourseDetails, MeetingDetails, SectionInformation
+from src.models import CourseDetails, MeetingDetails, SectionInformation
+import requests
 
 URL = "https://central.carleton.ca/prod/bwysched.p_select_term?wsea_code=EXT"
 
@@ -32,18 +34,17 @@ def get_subjects(subjects_list_html: str):
 
 class CourseScraper:
     def __init__(self):
-        # create a new Chrome session
-        options = webdriver.ChromeOptions()
+        options = Options()
+        options.add_argument("--headless")
         options.add_argument("--no-sandbox")
         options.add_argument("--disable-dev-shm-usage")
-        options.add_argument("--disable-gpu")
-        options.add_argument("--headless")
+
         self.driver = webdriver.Chrome(
-            service=ChromeService(ChromeDriverManager().install()), options=options
+            options=options, service=Service(ChromeDriverManager().install())
         )
 
-        self.driver.maximize_window()
         self.driver.get(URL)
+        print("initialized scraper")
 
     def get_course_data(self, course_url: str) -> CourseDetails:
         self.driver.get(course_url)
@@ -195,15 +196,9 @@ class CourseScraper:
             except Exception as e:
                 print(f"Error scraping {course}: {e}")
 
-        courses_dicts = [course.__dict__() for course in courses]
-
-        with open(f"jobs/{subject}-{term}.json", "w") as f:
-            json.dump(courses_dicts, f, indent=4)
-            f.close()
-
         return courses
 
-    def get_subjects(self) -> [CourseDetails]:
+    def get_subjects(self):
         self.driver.get(URL)
 
         self.driver.find_element(
@@ -239,10 +234,6 @@ class CourseScraper:
             for subject in subjects:
                 print(f"Scraping {subject} for term {term}")
                 term_courses += self.search_by_subject(subject, term)
-
-        with open("courses.json", "w") as f:
-            json.dump(term_courses, f, indent=4)
-            f.close()
 
 
 def main():

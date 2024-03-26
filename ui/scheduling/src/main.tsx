@@ -8,7 +8,6 @@ import { Instance, onSnapshot } from "mobx-state-tree";
 import { AppManager } from "./api/AppManager.ts";
 import { observer } from "mobx-react-lite";
 import { ToasterContainer } from "baseui/toast/toaster";
-import pinkGradient from "./pinkGradient.svg";
 import Modal from "baseui/modal/modal";
 import { Row } from "./components/util.tsx";
 

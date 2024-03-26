@@ -1,16 +1,15 @@
 import { useStyletron } from "baseui";
-import { useState, useLayoutEffect, useEffect } from "react";
+import { useState, useLayoutEffect } from "react";
 import { CourseDetails, MeetingDetails } from "../api/api";
 import "./Calendar.css";
 import { Button } from "baseui/button";
 import { exportEventsToICS } from "../api/icsGenerator";
-import { observer, useLocalObservable, useObserver } from "mobx-react-lite";
+import { observer } from "mobx-react-lite";
 import { useAppManager } from "../main";
 import { Column, Row } from "./util";
 import { ChevronLeft, ChevronRight } from "baseui/icon";
 import { Modal } from "baseui/modal";
 import { StyleObject } from "styletron-react";
-import { onAction } from "mobx-state-tree";
 
 /**
  * The CalendarTime interface is used to represent a time in the calendar.

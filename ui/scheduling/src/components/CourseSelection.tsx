@@ -8,12 +8,7 @@ import { useAppManager } from "../main";
 import { Column, Row } from "./util";
 import { Button } from "baseui/button";
 import { Instance } from "mobx-state-tree";
-import {
-    RelatedOffering,
-    SectionModel,
-    convert_term,
-    stringToColor,
-} from "../api/AppManager";
+import { RelatedOffering, SectionModel, convert_term } from "../api/AppManager";
 import { SegmentedControl, Segment } from "baseui/segmented-control";
 import { Tooltip } from "@mui/material";
 import { TermPicker } from "./App";
@@ -98,7 +93,6 @@ export const CourseSelectionList = observer(
                     textAlign: "center",
                     gap: "10px",
                     alignItems: "center",
-
                     // glassmorphism
                     backgroundColor: "rgba(255, 255, 255, 0.5)",
                     backdropFilter: "blur(10px)",
@@ -306,7 +300,7 @@ export const _SearchResultItem = (props: {
 
 export const SearchResultItem = observer(
     (props: { course: SearchableCourse; closeModal: () => void }) => {
-        const [css, $theme] = useStyletron();
+        const [css, _$theme] = useStyletron();
 
         const appManager = useAppManager();
 

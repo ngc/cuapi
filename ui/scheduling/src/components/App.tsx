@@ -12,7 +12,7 @@ import {
     CourseSelectionModal,
 } from "./CourseSelection";
 import { Column, Row } from "./util";
-import Wordmark from "../wordmark.svg";
+import Wordmark from "../Wordmark.svg";
 
 export const TermPicker = observer(() => {
     const appManager = useAppManager();
@@ -50,7 +50,6 @@ export const TermPicker = observer(() => {
 export const App = observer(() => {
     const [css, _$theme] = useStyletron();
     const [isOpen, setIsOpen] = useState(false);
-    const appManager = useAppManager();
 
     const [isMobile, setIsMobile] = useState(
         window.innerWidth <= 768 || window.innerHeight <= 768
