@@ -21,8 +21,12 @@ envsubst '$$FRONTEND_URL $$BACKEND_URL $$REDIS_URL' < /etc/nginx/nginx.conf.temp
 # Start Nginx in the background
 nginx -g 'daemon off;' &
 
-# Set up SSL certificates using Certbot
-certbot --nginx -m $CERTBOT_EMAIL --agree-tos --no-eff-email -d $FRONTEND_URL -d $BACKEND_URL --redirect --keep-until-expiring
+# if STAGING is set to 1 then print hi else print hello
+if [ "$STAGING" = "1" ]; then
+    echo "Skipping Certbot staging environment"
+else
+    certbot --nginx -m $CERTBOT_EMAIL --agree-tos --no-eff-email -d $FRONTEND_URL -d $BACKEND_URL --redirect --keep-until-expiring
+fi
 
 # Bring Nginx back to the foreground
 wait

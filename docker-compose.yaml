@@ -5,9 +5,9 @@ services:
       context: .
       dockerfile: Dockerfile.nginx
     volumes:
-      - ./nginx.conf:/etc/nginx/nginx.conf
       - certbot-data:/etc/letsencrypt
       - certbot-logs:/var/log/letsencrypt
+      - saved-nginx-conf:/etc/nginx/conf.d
     ports:
       - "80:80"
       - "443:443"
