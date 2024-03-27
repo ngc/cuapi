@@ -98,6 +98,7 @@ services:
     image: nathanngc/celery:latest
 volumes:
   db-data:
+  certbot-data:
 networks:
   cuapi:
     driver: bridge
