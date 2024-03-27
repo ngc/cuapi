@@ -99,6 +99,7 @@ services:
 volumes:
   db-data:
   certbot-data:
+  certbot-logs:
 networks:
   cuapi:
     driver: bridge
