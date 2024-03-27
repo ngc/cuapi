@@ -1,8 +1,17 @@
 FROM nginx:latest
 
+# Install necessary packages
 RUN apt-get update && apt-get install -y netcat-openbsd
+RUN apt-get update \
+    && apt-get install -y certbot python-certbot-nginx \
+    && rm -rf /var/lib/apt/lists/*
 
+# Copy the Nginx configuration template
 COPY nginx.conf.template /etc/nginx/nginx.conf.template
+
+# Copy the modified startup script
 COPY start-nginx.sh /start-nginx.sh
 RUN chmod +x /start-nginx.sh
-CMD ["/bin/bash", "-c", "envsubst '$$FRONTEND_URL $$BACKEND_URL $$REDIS_URL' < /etc/nginx/nginx.conf.template > /etc/nginx/nginx.conf && /start-nginx.sh"]
+
+# Set up the entrypoint to use the startup script
+CMD ["/start-nginx.sh"]

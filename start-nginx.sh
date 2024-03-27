@@ -15,5 +15,14 @@ while ! nc -z redis 6379; do
     sleep 1
 done
 
-# Start NGINX
-nginx -g 'daemon off;'
+# Replace environment variables in the Nginx configuration
+envsubst '$$FRONTEND_URL $$BACKEND_URL $$REDIS_URL' < /etc/nginx/nginx.conf.template > /etc/nginx/nginx.conf
+
+# Start Nginx in the background
+nginx -g 'daemon off;' &
+
+# Set up SSL certificates using Certbot
+certbot --nginx -m $CERTBOT_EMAIL --agree-tos --no-eff-email -d $FRONTEND_URL -d $BACKEND_URL --redirect --keep-until-expiring
+
+# Bring Nginx back to the foreground
+wait
