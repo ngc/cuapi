@@ -20,10 +20,9 @@ redis_db = os.environ.get("REDIS_DB", "1")
 
 if os.environ.get("IS_BEAT") != "true":
     redis_host = input("Enter the Redis host: ")
+    URL = "https://cuapi.cuscheduling.com"
 
-broker_url = (
-    f"redis://{redis_username}:{redis_password}@{redis_host}:{redis_port}/{redis_db}"
-)
+broker_url = f"redis://{redis_host}:{redis_port}/{redis_db}"
 
 app = Celery("tasks", broker=broker_url)
 app.conf.redbeat_redis_url = broker_url
@@ -40,8 +39,6 @@ def add_course(course: CourseDetails):
         },
         timeout=5,
     )
-
-    return response.json()
 
 
 @app.task(bind=True)
