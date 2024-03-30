@@ -8,10 +8,37 @@ import { useAppManager } from "../main";
 import { Column, Row } from "./util";
 import { Button } from "baseui/button";
 import { Instance } from "mobx-state-tree";
-import { RelatedOffering, SectionModel, convert_term } from "../api/AppManager";
+import {
+    MeetingDetails,
+    RelatedOffering,
+    SectionModel,
+    convert_term,
+} from "../api/AppManager";
 import { SegmentedControl, Segment } from "baseui/segmented-control";
 import { Tooltip } from "@mui/material";
 import { TermPicker } from "./App";
+
+const hasNoDays = (meetingDetails: MeetingDetails[]) => {
+    return meetingDetails.every(
+        (meeting) => meeting.days.length === 1 && meeting.days[0] === ""
+    );
+};
+
+const isOnlineOnly = (course: Instance<typeof RelatedOffering>) => {
+    for (const section of course.section_models) {
+        for (const tutorial of section.tutorials) {
+            if (!hasNoDays(tutorial.meeting_details)) {
+                return false;
+            }
+        }
+        for (const course of section.courses) {
+            if (!hasNoDays(course.meeting_details)) {
+                return false;
+            }
+        }
+    }
+    return true;
+};
 
 export const AddCourseButton = (props: { onClick: () => void }) => {
     return (
@@ -87,6 +114,20 @@ export const CourseSelectionList = observer(
             );
         }
 
+        // seperate asynchronous courses (online only) from synchronous courses
+        let onlineOnlyCourses = [];
+        let synchronousCourses = [];
+
+        for (const course of appManager.selectedOfferings) {
+            if (isOnlineOnly(course)) {
+                onlineOnlyCourses.push(course);
+            } else {
+                synchronousCourses.push(course);
+            }
+        }
+
+        const displaySeparately = onlineOnlyCourses.length > 0;
+
         return (
             <Column
                 $style={{
@@ -111,7 +152,6 @@ export const CourseSelectionList = observer(
                     >
                         Courses
                     </a>
-                    {/* small italized click to remove */}
                     <a
                         className={css({
                             fontSize: "0.75em",
@@ -128,15 +168,56 @@ export const CourseSelectionList = observer(
                         gap: "2px",
                     }}
                 >
-                    {appManager.selectedOfferings.map((course) => {
-                        return (
-                            <Tooltip title={"Click to remove"}>
+                    <Column
+                        $style={{
+                            gap: "2px",
+                        }}
+                    >
+                        {displaySeparately && (
+                            <a
+                                className={css({
+                                    fontSize: "small",
+                                    margin: "0px",
+                                    padding: "0px",
+                                })}
+                            >
+                                Regular Courses
+                            </a>
+                        )}
+                        {synchronousCourses.map((course) => {
+                            return (
                                 <Row>
                                     <SelectedCourseItem course={course} />
                                 </Row>
-                            </Tooltip>
-                        );
-                    })}
+                            );
+                        })}
+                    </Column>
+
+                    <Column
+                        $style={{
+                            gap: "2px",
+                        }}
+                    >
+                        {displaySeparately && (
+                            <a
+                                className={css({
+                                    fontSize: "small",
+                                    margin: "0px",
+                                    padding: "0px",
+                                })}
+                            >
+                                Online Courses
+                            </a>
+                        )}
+                        {onlineOnlyCourses.map((course) => {
+                            return (
+                                <Row>
+                                    <SelectedCourseItem course={course} />
+                                </Row>
+                            );
+                        })}
+                    </Column>
+
                     {appManager.selectedOfferings.length === 0 && (
                         <p>No courses selected</p>
                     )}
@@ -427,6 +508,7 @@ export const CourseSelectionModal = observer(
                                       zIndex: 1000,
                                   }
                                 : {}),
+                            overflowY: "cutoff",
                         },
                     },
                     DialogContainer: {
@@ -437,7 +519,7 @@ export const CourseSelectionModal = observer(
                     Dialog: {
                         style: {
                             width: "40%",
-                            height: "70vh",
+                            height: "70%",
                             "@media screen and (max-width: 1024px)": {
                                 width: "90%",
                                 height: "90%",
@@ -517,9 +599,12 @@ export const CourseSelectionModal = observer(
 
                     <Column
                         $style={{
-                            height: "350px",
                             overflowY: "scroll",
                             gap: "5px",
+                            height: "500px",
+                            // fade out bottom of element
+                            maskImage:
+                                "linear-gradient(to bottom, black 0%, black calc(100% - 50px), transparent 100%)",
                         }}
                     >
                         {searchResults.map((course) => {
