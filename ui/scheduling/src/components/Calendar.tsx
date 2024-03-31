@@ -543,6 +543,45 @@ export const Calendar = observer((props: CalendarProps) => {
                                     crnSet.add(event.course.CRN);
                                 }
                                 const crns = Array.from(crnSet);
+                                for (let offering of appManager.selectedOnlineOfferings) {
+                                    const sectionModels =
+                                        offering.section_models;
+                                    // pick a random section model
+                                    const sectionModel =
+                                        sectionModels[
+                                            Math.floor(
+                                                Math.random() *
+                                                    sectionModels.length
+                                            )
+                                        ];
+
+                                    const course =
+                                        sectionModel.courses.length > 0
+                                            ? sectionModel.courses[
+                                                  Math.floor(
+                                                      Math.random() *
+                                                          sectionModel.courses
+                                                              .length
+                                                  )
+                                              ]
+                                            : null;
+                                    const tutorial =
+                                        sectionModel.tutorials.length > 0
+                                            ? sectionModel.tutorials[
+                                                  Math.floor(
+                                                      Math.random() *
+                                                          sectionModel.tutorials
+                                                              .length
+                                                  )
+                                              ]
+                                            : null;
+                                    if (course) {
+                                        crns.push(course.CRN);
+                                    }
+                                    if (tutorial) {
+                                        crns.push(tutorial.CRN);
+                                    }
+                                }
 
                                 setTutorialModalContent(
                                     <div

@@ -18,28 +18,6 @@ import { SegmentedControl, Segment } from "baseui/segmented-control";
 import { Tooltip } from "@mui/material";
 import { TermPicker } from "./App";
 
-const hasNoDays = (meetingDetails: MeetingDetails[]) => {
-    return meetingDetails.every(
-        (meeting) => meeting.days.length === 1 && meeting.days[0] === ""
-    );
-};
-
-const isOnlineOnly = (course: Instance<typeof RelatedOffering>) => {
-    for (const section of course.section_models) {
-        for (const tutorial of section.tutorials) {
-            if (!hasNoDays(tutorial.meeting_details)) {
-                return false;
-            }
-        }
-        for (const course of section.courses) {
-            if (!hasNoDays(course.meeting_details)) {
-                return false;
-            }
-        }
-    }
-    return true;
-};
-
 export const AddCourseButton = (props: { onClick: () => void }) => {
     return (
         <Button
@@ -114,19 +92,7 @@ export const CourseSelectionList = observer(
             );
         }
 
-        // seperate asynchronous courses (online only) from synchronous courses
-        let onlineOnlyCourses = [];
-        let synchronousCourses = [];
-
-        for (const course of appManager.selectedOfferings) {
-            if (isOnlineOnly(course)) {
-                onlineOnlyCourses.push(course);
-            } else {
-                synchronousCourses.push(course);
-            }
-        }
-
-        const displaySeparately = onlineOnlyCourses.length > 0;
+        const displaySeparately = appManager.selectedOnlineOfferings.length > 0;
 
         return (
             <Column
@@ -184,7 +150,7 @@ export const CourseSelectionList = observer(
                                 Regular Courses
                             </a>
                         )}
-                        {synchronousCourses.map((course) => {
+                        {appManager.selectedRegularOfferings.map((course) => {
                             return (
                                 <Row>
                                     <SelectedCourseItem course={course} />
@@ -209,7 +175,7 @@ export const CourseSelectionList = observer(
                                 Online Courses
                             </a>
                         )}
-                        {onlineOnlyCourses.map((course) => {
+                        {appManager.selectedOnlineOfferings.map((course) => {
                             return (
                                 <Row>
                                     <SelectedCourseItem course={course} />
