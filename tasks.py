@@ -20,7 +20,9 @@ redis_db = os.environ.get("REDIS_DB", "1")
 
 if os.environ.get("IS_BEAT") != "true":
     redis_host = input("Enter the Redis host: ")
-    URL = "https://cuapi.cuscheduling.com"
+    isLocal = input("Is this running locally? (y/n): ")
+    if isLocal == "n":
+        URL = "https://cuapi.cuscheduling.com"
 
 broker_url = f"redis://{redis_host}:{redis_port}/{redis_db}"
 

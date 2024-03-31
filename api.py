@@ -14,11 +14,6 @@ import os
 from dotenv import load_dotenv
 
 
-"""
-Use CORs to allow from any origin
-"""
-
-
 app = Flask(__name__)
 cors = CORS(app)
 load_dotenv()

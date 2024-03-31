@@ -15,6 +15,7 @@ import {
     getBestSchedules,
 } from "./scheduling";
 import { toaster } from "baseui/toast";
+import { isOnlineOnly } from "./util";
 
 export interface SectionInformation {
     section_type: string;
@@ -296,8 +297,29 @@ export const AppManager = types
                     for (let course of selectedCourses) {
                         events = events.concat(courseDetailsToEvent(course));
                     }
-
                     return events;
+                },
+
+                get selectedOnlineOfferings(): typeof self.selectedOfferings {
+                    const selectedCourses = self.selectedOfferings;
+                    let onlineOfferings: any = [];
+                    for (let offering of selectedCourses) {
+                        if (isOnlineOnly(offering)) {
+                            onlineOfferings.push(offering);
+                        }
+                    }
+                    return onlineOfferings;
+                },
+
+                get selectedRegularOfferings(): typeof self.selectedOfferings {
+                    const selectedCourses = self.selectedOfferings;
+                    let regularOfferings: any = [];
+                    for (let offering of selectedCourses) {
+                        if (!isOnlineOnly(offering)) {
+                            regularOfferings.push(offering);
+                        }
+                    }
+                    return regularOfferings;
                 },
             },
         };

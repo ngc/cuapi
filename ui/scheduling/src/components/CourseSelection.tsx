@@ -8,7 +8,12 @@ import { useAppManager } from "../main";
 import { Column, Row } from "./util";
 import { Button } from "baseui/button";
 import { Instance } from "mobx-state-tree";
-import { RelatedOffering, SectionModel, convert_term } from "../api/AppManager";
+import {
+    MeetingDetails,
+    RelatedOffering,
+    SectionModel,
+    convert_term,
+} from "../api/AppManager";
 import { SegmentedControl, Segment } from "baseui/segmented-control";
 import { Tooltip } from "@mui/material";
 import { TermPicker } from "./App";
@@ -87,6 +92,8 @@ export const CourseSelectionList = observer(
             );
         }
 
+        const displaySeparately = appManager.selectedOnlineOfferings.length > 0;
+
         return (
             <Column
                 $style={{
@@ -111,7 +118,6 @@ export const CourseSelectionList = observer(
                     >
                         Courses
                     </a>
-                    {/* small italized click to remove */}
                     <a
                         className={css({
                             fontSize: "0.75em",
@@ -128,15 +134,56 @@ export const CourseSelectionList = observer(
                         gap: "2px",
                     }}
                 >
-                    {appManager.selectedOfferings.map((course) => {
-                        return (
-                            <Tooltip title={"Click to remove"}>
+                    <Column
+                        $style={{
+                            gap: "2px",
+                        }}
+                    >
+                        {displaySeparately && (
+                            <a
+                                className={css({
+                                    fontSize: "small",
+                                    margin: "0px",
+                                    padding: "0px",
+                                })}
+                            >
+                                Regular Courses
+                            </a>
+                        )}
+                        {appManager.selectedRegularOfferings.map((course) => {
+                            return (
                                 <Row>
                                     <SelectedCourseItem course={course} />
                                 </Row>
-                            </Tooltip>
-                        );
-                    })}
+                            );
+                        })}
+                    </Column>
+
+                    <Column
+                        $style={{
+                            gap: "2px",
+                        }}
+                    >
+                        {displaySeparately && (
+                            <a
+                                className={css({
+                                    fontSize: "small",
+                                    margin: "0px",
+                                    padding: "0px",
+                                })}
+                            >
+                                Online Courses
+                            </a>
+                        )}
+                        {appManager.selectedOnlineOfferings.map((course) => {
+                            return (
+                                <Row>
+                                    <SelectedCourseItem course={course} />
+                                </Row>
+                            );
+                        })}
+                    </Column>
+
                     {appManager.selectedOfferings.length === 0 && (
                         <p>No courses selected</p>
                     )}
@@ -427,6 +474,7 @@ export const CourseSelectionModal = observer(
                                       zIndex: 1000,
                                   }
                                 : {}),
+                            overflowY: "cutoff",
                         },
                     },
                     DialogContainer: {
@@ -437,7 +485,7 @@ export const CourseSelectionModal = observer(
                     Dialog: {
                         style: {
                             width: "40%",
-                            height: "70vh",
+                            height: "70%",
                             "@media screen and (max-width: 1024px)": {
                                 width: "90%",
                                 height: "90%",
@@ -517,9 +565,12 @@ export const CourseSelectionModal = observer(
 
                     <Column
                         $style={{
-                            height: "350px",
                             overflowY: "scroll",
                             gap: "5px",
+                            height: "500px",
+                            // fade out bottom of element
+                            maskImage:
+                                "linear-gradient(to bottom, black 0%, black calc(100% - 50px), transparent 100%)",
                         }}
                     >
                         {searchResults.map((course) => {
