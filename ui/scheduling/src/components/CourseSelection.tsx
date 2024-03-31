@@ -8,14 +8,8 @@ import { useAppManager } from "../main";
 import { Column, Row } from "./util";
 import { Button } from "baseui/button";
 import { Instance } from "mobx-state-tree";
-import {
-    MeetingDetails,
-    RelatedOffering,
-    SectionModel,
-    convert_term,
-} from "../api/AppManager";
+import { RelatedOffering, SectionModel, convert_term } from "../api/AppManager";
 import { SegmentedControl, Segment } from "baseui/segmented-control";
-import { Tooltip } from "@mui/material";
 import { TermPicker } from "./App";
 
 export const AddCourseButton = (props: { onClick: () => void }) => {
