@@ -10,6 +10,7 @@ import { Column, Row } from "./util";
 import { ChevronLeft, ChevronRight } from "baseui/icon";
 import { Modal } from "baseui/modal";
 import { StyleObject } from "styletron-react";
+import { Popover } from "baseui/popover";
 
 /**
  * The CalendarTime interface is used to represent a time in the calendar.
@@ -73,6 +74,27 @@ export interface CalendarProps {
     $style?: StyleObject;
     mobile?: boolean;
 }
+
+const shortDayToLong = (short: string) => {
+    switch (short) {
+        case "Mon":
+            return "Monday";
+        case "Tue":
+            return "Tuesday";
+        case "Wed":
+            return "Wednesday";
+        case "Thu":
+            return "Thursday";
+        case "Fri":
+            return "Friday";
+        case "Sat":
+            return "Saturday";
+        case "Sun":
+            return "Sunday";
+        default:
+            return short;
+    }
+};
 
 const CalendarGrid = observer((props: { mobile?: boolean }) => {
     /*
@@ -148,6 +170,141 @@ const CalendarGrid = observer((props: { mobile?: boolean }) => {
     );
 });
 
+const CourseInfoPill = (props: { children: React.ReactNode }) => {
+    const [css, _$theme] = useStyletron();
+    return (
+        <div
+            className={css({
+                display: "flex",
+                flexDirection: "row",
+                gap: "5px",
+                padding: "5px",
+                backgroundColor: "rgba(0, 0, 0, 0.1)",
+                borderRadius: "10px",
+                fontSize: "0.75em",
+            })}
+        >
+            {props.children}
+        </div>
+    );
+};
+
+const MeetingDetailsDisplay = (props: { meeting: MeetingDetails }) => {
+    const [css, _$theme] = useStyletron();
+    return (
+        <div
+            className={css({
+                display: "flex",
+                flexDirection: "column",
+                gap: "5px",
+                borderRadius: "10px",
+                padding: "10px",
+                backgroundColor: "rgba(0, 0, 0, 0.1)",
+                border: "1px solid black",
+                fontSize: "0.9em",
+            })}
+        >
+            <Row>
+                <a
+                    className={css({
+                        fontSize: "1.05em",
+                        fontWeight: "medium",
+                        color: "black",
+                    })}
+                >
+                    Every{" "}
+                    {props.meeting.days.map((day) => {
+                        return shortDayToLong(day) + " ";
+                    })}
+                </a>
+            </Row>
+            <Row>
+                <a>{props.meeting.schedule_type}</a>
+            </Row>
+            {props.meeting.instructor && (
+                <Row>
+                    <a>Instructor: {props.meeting.instructor}</a>
+                </Row>
+            )}
+        </div>
+    );
+};
+
+const CourseInfoDisplay = (props: { course: CourseDetails }) => {
+    const [css, _$theme] = useStyletron();
+    return (
+        <div
+            className={css({
+                display: "flex",
+                flexDirection: "column",
+                gap: "5px",
+                backgroundColor: "white",
+                padding: "10px",
+                borderRadius: "10px",
+            })}
+        >
+            <a
+                className={css({
+                    fontSize: "1.25em",
+                    fontWeight: "medium",
+                    color: "black",
+                })}
+            >
+                {props.course.long_title}
+            </a>
+            <Row
+                $style={{
+                    gap: "5px",
+                }}
+            >
+                <Column>
+                    <CourseInfoPill>
+                        <a>{props.course.subject_code}</a>
+                    </CourseInfoPill>
+                </Column>
+                <Column>
+                    <CourseInfoPill>
+                        <a>CRN: {props.course.CRN}</a>
+                    </CourseInfoPill>
+                </Column>
+            </Row>
+            <Row
+                $style={{
+                    maxWidth: "300px",
+                }}
+            >
+                <p>{props.course.course_description}</p>
+            </Row>
+
+            {/*
+                Meeting details
+                */}
+            <a
+                className={css({
+                    fontSize: "1.15em",
+                    fontWeight: "medium",
+                    color: "black",
+                })}
+            >
+                Meeting Details
+                <div
+                    className={css({
+                        borderBottom: "1px solid black",
+                        margin: "10px 0",
+                    })}
+                />
+            </a>
+            <Column>
+                {props.course.meeting_details.map((meeting, index) => {
+                    return (
+                        <MeetingDetailsDisplay meeting={meeting} key={index} />
+                    );
+                })}
+            </Column>
+        </div>
+    );
+};
+
 const makeHexTransparent = (hex: string, opacity: number) => {
     const r = parseInt(hex.slice(1, 3), 16);
     const g = parseInt(hex.slice(3, 5), 16);
@@ -169,6 +326,8 @@ const EventPositioner = (props: { event: CalendarEvent; mobile?: boolean }) => {
         width: 0,
         height: 0,
     });
+
+    const [popoverOpen, setPopoverOpen] = useState(false);
 
     useLayoutEffect(() => {
         const calculateLayout = () => {
@@ -217,44 +376,73 @@ const EventPositioner = (props: { event: CalendarEvent; mobile?: boolean }) => {
 
     return (
         <>
-            <div
-                className={css({
-                    position: "absolute",
-                    top: `${layout.top}px`,
-                    left: `${layout.left}px`,
-                    width: `${layout.width}px`,
-                    height: `${layout.height}px`,
-                    borderRadius: "12px",
-                    // dashed inside border
-                    border: "2px dashed black",
-                    zIndex: 10,
-                    overflow: "hidden",
-                    padding: 0,
-                    margin: 0,
-
-                    // backdropFilter: "blur(10px)",
-                    boxShadow: "0 4px 8px 0 rgba(0, 0, 0, 0.2)",
-                    backgroundColor: makeHexTransparent(props.event.color, 0.5),
-                    transition: "all 0.2s",
-                })}
+            <Popover
+                isOpen={popoverOpen}
+                content={<CourseInfoDisplay course={props.event.course} />}
+                onClick={() => {
+                    setPopoverOpen(true);
+                }}
+                onEsc={() => {
+                    setPopoverOpen(false);
+                }}
+                onClickOutside={() => {
+                    setPopoverOpen(false);
+                }}
+                overrides={{
+                    Body: {
+                        style: {
+                            zIndex: 1000,
+                        },
+                    },
+                }}
             >
                 <div
+                    onClick={() => {
+                        setPopoverOpen(!popoverOpen);
+                    }}
                     className={css({
-                        position: "relative",
-                        display: "flex",
-                        justifyContent: "left",
-                        alignItems: "left",
-                        height: "100%",
-                        width: "100%",
+                        position: "absolute",
+                        top: `${layout.top}px`,
+                        left: `${layout.left}px`,
+                        width: `${layout.width}px`,
+                        height: `${layout.height}px`,
+                        borderRadius: "12px",
+                        // dashed inside border
+                        border: "2px dashed black",
+                        zIndex: 10,
+                        overflow: "hidden",
+                        padding: 0,
+                        margin: 0,
+                        cursor: "pointer",
+
+                        // backdropFilter: "blur(10px)",
+                        boxShadow: "0 4px 8px 0 rgba(0, 0, 0, 0.2)",
+                        backgroundColor: makeHexTransparent(
+                            props.event.color,
+                            0.5
+                        ),
+                        transition: "all 0.2s",
+                        pointerEvents: "all",
                     })}
                 >
-                    <EventDisplay
-                        event={props.event}
-                        height={layout.height}
-                        mobile={props.mobile}
-                    />
+                    <div
+                        className={css({
+                            position: "relative",
+                            display: "flex",
+                            justifyContent: "left",
+                            alignItems: "left",
+                            height: "100%",
+                            width: "100%",
+                        })}
+                    >
+                        <EventDisplay
+                            event={props.event}
+                            height={layout.height}
+                            mobile={props.mobile}
+                        />
+                    </div>
                 </div>
-            </div>
+            </Popover>
         </>
     );
 };
