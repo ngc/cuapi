@@ -89,21 +89,29 @@ class CourseScraper:
         )
 
         # Extracting meeting details
-        meeting_table = soup.find(text="Meeting Date").find_parent("table")
-        meeting_rows = meeting_table.find_all("tr")[1:]  # Skip header row
+        has_no_meeting_table = (
+            soup.find(text="Meeting Date") is None
+            or soup.find(text="Meeting Date").find_parent("table") is None
+        )
         meeting_details = []
-        for row in meeting_rows:
-            cols = row.find_all("td")
-            meeting_date = cols[0].get_text(strip=True)
-            days = cols[1].get_text(strip=True).split(" ")
-            meeting_time = cols[2].get_text(strip=True)
-            schedule = cols[3].get_text(strip=True)
-            instructor = None
-            if len(cols) > 4:
-                instructor = cols[4].get_text(strip=True)
-            meeting_details.append(
-                MeetingDetails(meeting_date, days, meeting_time, schedule, instructor)
-            )
+
+        if not has_no_meeting_table:
+            meeting_table = soup.find(text="Meeting Date").find_parent("table")
+            meeting_rows = meeting_table.find_all("tr")[1:]  # Skip header row
+            for row in meeting_rows:
+                cols = row.find_all("td")
+                meeting_date = cols[0].get_text(strip=True)
+                days = cols[1].get_text(strip=True).split(" ")
+                meeting_time = cols[2].get_text(strip=True)
+                schedule = cols[3].get_text(strip=True)
+                instructor = None
+                if len(cols) > 4:
+                    instructor = cols[4].get_text(strip=True)
+                meeting_details.append(
+                    MeetingDetails(
+                        meeting_date, days, meeting_time, schedule, instructor
+                    )
+                )
 
         return CourseDetails(
             registration_term,
@@ -249,5 +257,14 @@ def main():
         f.close()
 
 
+def scrape_specific_course():
+    debug_scraper = CourseScraper()
+    print(
+        debug_scraper.get_course_data(
+            "https://central.carleton.ca/prod/bwysched.p_display_course?wsea_code=EXT&term_code=202330&disp=20546965&crn=35943"
+        )
+    )
+
+
 if __name__ == "__main__":
-    main()
+    scrape_specific_course()

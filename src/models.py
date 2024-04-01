@@ -257,11 +257,13 @@ class DatabaseConnection:
                 FROM searchable_courses
                 WHERE registration_term = %(term)s AND (related_offering ILIKE %(query)s OR long_title ILIKE %(query)s)
                 ORDER BY relevance DESC
+                LIMIT %(per_page)s OFFSET %(per_page)s * %(page)s;
                 """,
                 {
                     "term": term,
                     "query": f"%{query}%",
                     "per_page": per_page,
+                    "page": page,
                 },
             )
 

@@ -6,7 +6,7 @@ import { Button } from "baseui/button";
 import { exportEventsToICS } from "../api/icsGenerator";
 import { observer } from "mobx-react-lite";
 import { useAppManager } from "../main";
-import { Column, Row } from "./util";
+import { Column, Row, listToCommaString } from "./util";
 import { ChevronLeft, ChevronRight } from "baseui/icon";
 import { Modal } from "baseui/modal";
 import { StyleObject } from "styletron-react";
@@ -213,9 +213,9 @@ const MeetingDetailsDisplay = (props: { meeting: MeetingDetails }) => {
                     })}
                 >
                     Every{" "}
-                    {props.meeting.days.map((day) => {
-                        return shortDayToLong(day) + " ";
-                    })}
+                    {listToCommaString(
+                        props.meeting.days.map((day) => shortDayToLong(day))
+                    )}
                 </a>
             </Row>
             <Row>
@@ -241,6 +241,7 @@ const CourseInfoDisplay = (props: { course: CourseDetails }) => {
                 backgroundColor: "white",
                 padding: "10px",
                 borderRadius: "10px",
+                maxWidth: "500px",
             })}
         >
             <a
@@ -270,7 +271,7 @@ const CourseInfoDisplay = (props: { course: CourseDetails }) => {
             </Row>
             <Row
                 $style={{
-                    maxWidth: "300px",
+                    width: "100%",
                 }}
             >
                 <p>{props.course.course_description}</p>
@@ -294,7 +295,11 @@ const CourseInfoDisplay = (props: { course: CourseDetails }) => {
                     })}
                 />
             </a>
-            <Column>
+            <Column
+                $style={{
+                    gap: "10px",
+                }}
+            >
                 {props.course.meeting_details.map((meeting, index) => {
                     return (
                         <MeetingDetailsDisplay meeting={meeting} key={index} />

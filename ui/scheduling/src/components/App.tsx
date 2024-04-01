@@ -14,6 +14,18 @@ import {
 import { Column, Row } from "./util";
 import Wordmark from "../Wordmark.svg";
 
+const getTermLabel = (term: string) => {
+    if (term.includes("Fall")) {
+        return "🍂 " + term;
+    } else if (term.includes("Winter")) {
+        return "❄️ " + term;
+    } else if (term.includes("Summer")) {
+        return "☀️ " + term;
+    } else {
+        return term;
+    }
+};
+
 export const TermPicker = observer(() => {
     const appManager = useAppManager();
 
@@ -31,16 +43,16 @@ export const TermPicker = observer(() => {
             searchable={false}
             value={[
                 {
-                    label: appManager.selectedTerm,
+                    label: getTermLabel(appManager.selectedTerm),
                     id: appManager.selectedTerm,
                 },
             ]}
             options={TERMS.map((term) => {
-                return { label: term, id: term };
+                return { label: getTermLabel(term), id: term };
             })}
             onChange={(params) => {
                 appManager.setTerm(
-                    (params.value[0].label as string) ?? "Fall 2024"
+                    (params.value[0].id as string) ?? "Fall 2024"
                 );
             }}
         />

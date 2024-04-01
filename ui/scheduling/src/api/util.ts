@@ -2,8 +2,10 @@ import { Instance } from "mobx-state-tree";
 import { MeetingDetails, RelatedOffering } from "./AppManager";
 
 const hasNoDays = (meetingDetails: MeetingDetails[]) => {
-    return meetingDetails.every(
-        (meeting) => meeting.days.length === 1 && meeting.days[0] === ""
+    return (
+        meetingDetails.every(
+            (meeting) => meeting.days.length === 1 && meeting.days[0] === ""
+        ) || meetingDetails.length === 0
     );
 };
 

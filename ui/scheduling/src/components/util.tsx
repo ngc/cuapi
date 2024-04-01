@@ -36,3 +36,16 @@ export const Row = (props: {
         </div>
     );
 };
+
+export const listToCommaString = (list: string[]): string => {
+    // everything should be separated by commas except for the last two items, which should be separated by "and"
+    if (list.length === 0) {
+        return "";
+    } else if (list.length === 1) {
+        return list[0];
+    } else if (list.length === 2) {
+        return list[0] + " and " + list[1];
+    } else {
+        return list[0] + ", " + listToCommaString(list.slice(1));
+    }
+};
