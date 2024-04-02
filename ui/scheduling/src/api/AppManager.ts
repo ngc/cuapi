@@ -234,7 +234,7 @@ export const AppManager = types
             );
 
             let sectionModel = offeringCopy.section_models.find(
-                (s) => s.sectionKey === sectionKey
+                (s: any) => s.sectionKey === sectionKey
             );
 
             // No section model found, create a new one

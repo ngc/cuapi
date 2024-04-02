@@ -372,7 +372,7 @@ export const CourseSelectionModal = (props: {
     >([]);
     const [searchQuery, setSearchQuery] = useState("");
     const appManager = useAppManager();
-    const [activeTab, setActiveTab] = useState<number>(SearchType.CRN);
+    const [activeTab, setActiveTab] = useState<number>(SearchType.SUBJECT_CODE);
 
     useEffect(() => {
         const fetchData = async (activeTab: number, searchQuery: string) => {

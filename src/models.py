@@ -303,23 +303,26 @@ class DatabaseConnection:
         self.connect()
 
         with self.conn.cursor() as cur:
-            cur.execute(
-                """
-                SELECT *, ts_rank(to_tsvector('english', related_offering), plainto_tsquery(%(query)s))
-                + 5 * ts_rank(to_tsvector('english', long_title), plainto_tsquery(%(query)s))
-                AS relevance
-                FROM searchable_courses
-                WHERE registration_term = %(term)s AND (related_offering ILIKE %(query)s OR long_title ILIKE %(query)s)
-                ORDER BY relevance DESC
-                LIMIT %(per_page)s OFFSET %(per_page)s * %(page)s;
-                """,
-                {
-                    "term": term,
-                    "query": f"%{query}%",
-                    "per_page": per_page,
-                    "page": page,
-                },
+            query_string = """
+            SELECT *
+            FROM searchable_courses
+            WHERE lower(registration_term) ILIKE '%{query}%'
+            OR lower(related_offering) ILIKE '%{query}%'
+            OR lower(long_title) ILIKE '%{query}%'
+            OR lower(description) ILIKE '%{query}%'
+            OR lower(registration_term) % lower('{query}')
+            OR lower(related_offering) % lower('{query}')
+            OR lower(long_title) % lower('{query}')
+            OR lower(description) % lower('{query}')
+            ORDER BY similarity(lower(related_offering), lower('{query}')) DESC
+            LIMIT {per_page} OFFSET {per_page} * {page};
+            """
+
+            formatted_query = query_string.format(
+                query=query, per_page=per_page, page=page - 1
             )
+
+            cur.execute(formatted_query)
 
             rows = cur.fetchall()
             courses = []
