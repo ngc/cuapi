@@ -284,10 +284,8 @@ export const CourseResultDisplay = (props: {
     );
 };
 
-export const CRNSearchResultItem = observer(
+export const SingleCourseSearchResultItem = observer(
     (props: { course: CourseDetails; closeModal: () => void }) => {
-        const [css, _$theme] = useStyletron();
-
         const appManager = useAppManager();
         const displayInfo = {
             long_title: props.course.subject_code,
@@ -309,8 +307,7 @@ export const CRNSearchResultItem = observer(
                                 props.course.related_offering
                         )
                     ) {
-                        toaster.warning("Course already added");
-                        return;
+                        toaster.positive("Adding course to existing selection");
                     }
 
                     appManager.addSingleCourse(props.course);
@@ -323,8 +320,6 @@ export const CRNSearchResultItem = observer(
 
 export const SearchableCourseResultItem = observer(
     (props: { course: SearchableCourse; closeModal: () => void }) => {
-        const [css, _$theme] = useStyletron();
-
         const appManager = useAppManager();
         const displayInfo = {
             long_title: props.course.long_title,
@@ -381,7 +376,7 @@ export const CourseSelectionModal = (props: {
 
     useEffect(() => {
         const fetchData = async (activeTab: number, searchQuery: string) => {
-            let results = [];
+            let results = [] as SearchableCourse[] | CourseDetails[];
 
             switch (activeTab) {
                 case SearchType.SUBJECT_CODE:
@@ -393,10 +388,11 @@ export const CourseSelectionModal = (props: {
                 case SearchType.CRN:
                     results = await appManager.searchByCRN(searchQuery, 1);
                     break;
-                default:
-                    results = (await new Promise((resolve) => {
-                        resolve([]);
-                    })) as CourseDetails[]; // TODO: implement course code search
+                case SearchType.COURSE_CODE:
+                    results = await appManager.searchByCourseCode(
+                        searchQuery,
+                        1
+                    );
                     break;
             }
 
@@ -494,7 +490,6 @@ export const CourseSelectionModal = (props: {
                             artwork={() => "😡"}
                             label="By Course Code"
                             description="Example: MATH 1104 CT"
-                            disabled={true}
                         />
                     </SegmentedControl>
                 </Row>
@@ -543,8 +538,26 @@ export const CourseSelectionModal = (props: {
                                         justifyContent: "center",
                                     }}
                                 >
-                                    <CRNSearchResultItem
-                                        course={course as CourseDetails}
+                                    <SingleCourseSearchResultItem
+                                        course={course}
+                                        closeModal={props.onClose}
+                                    />
+                                </Row>
+                            );
+                        })}
+
+                    {activeTab === SearchType.COURSE_CODE &&
+                        (searchResults as CourseDetails[]).map((course) => {
+                            return (
+                                <Row
+                                    key={course.related_offering}
+                                    $style={{
+                                        width: "100%",
+                                        justifyContent: "center",
+                                    }}
+                                >
+                                    <SingleCourseSearchResultItem
+                                        course={course}
                                         closeModal={props.onClose}
                                     />
                                 </Row>

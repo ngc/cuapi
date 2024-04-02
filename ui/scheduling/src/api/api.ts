@@ -110,3 +110,14 @@ export async function crnSearch(
     const response = await fetch(`${API_URL}crn/${term}/${crn}/${page}`);
     return response.json();
 }
+
+export async function courseCodeSearch(
+    term: string,
+    course_code: string,
+    page: number
+): Promise<CourseDetails[]> {
+    const response = await fetch(
+        `${API_URL}course-code/${term}/${course_code}/${page}`
+    );
+    return response.json();
+}

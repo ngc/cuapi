@@ -51,6 +51,16 @@ export async function crnSearch(
 """
 
 
+class SearchByCourseCode(Resource):
+    def get(self, term: str, course_code: str, page: int):
+        dict_list = [
+            course.__dict__()
+            for course in db.search_by_course_code(term, course_code, page)
+        ]
+
+        return jsonify(dict_list)
+
+
 class SearchByCrn(Resource):
     def get(self, term: str, crn: str, page: int):
         dict_list = [course.__dict__() for course in db.search_by_crn(term, crn, page)]
@@ -74,6 +84,9 @@ api.add_resource(
     "/searchable-courses/<string:term>/<string:search_term>/<int:page>",
 )
 api.add_resource(SearchByCrn, "/crn/<string:term>/<string:crn>/<int:page>")
+api.add_resource(
+    SearchByCourseCode, "/course-code/<string:term>/<string:course_code>/<int:page>"
+)
 
 
 def run_dev_server():
