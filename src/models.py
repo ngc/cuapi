@@ -5,6 +5,49 @@ from dotenv import load_dotenv
 import os
 
 
+def course_dict_to_course_details(course_dict):
+    section_information = SectionInformation(
+        course_dict["section_information"]["section_type"],
+        course_dict["section_information"]["suitability"],
+    )
+
+    meeting_details = []
+    for meeting in course_dict["meeting_details"]:
+        meeting_details.append(
+            MeetingDetails(
+                meeting["meeting_date"],
+                meeting["days"],
+                meeting["time"],
+                meeting["schedule_type"],
+                meeting["instructor"],
+            )
+        )
+
+    course_details = CourseDetails(
+        course_dict["registration_term"],
+        course_dict["CRN"],
+        course_dict["subject_code"],
+        course_dict["long_title"],
+        course_dict["short_title"],
+        course_dict["course_description"],
+        course_dict["course_credit_value"],
+        course_dict["schedule_type"],
+        course_dict["session_info"],
+        course_dict["registration_status"],
+        section_information,
+        course_dict["year_in_program_restriction"],
+        course_dict["level_restriction"],
+        course_dict["degree_restriction"],
+        course_dict["major_restriction"],
+        course_dict["program_restrictions"],
+        course_dict["department_restriction"],
+        course_dict["faculty_restriction"],
+        meeting_details,
+    )
+
+    return course_details
+
+
 def format_registration_term(term: str) -> str:
     if "Fall" in term:
         return "F"
@@ -177,7 +220,16 @@ class CourseDetails:
 
 
 class DatabaseConnection:
+
     def __init__(self) -> None:
+        self.conn = None
+        self.connect()
+        self.initialize_db()
+
+    def connect(self):
+        if self.conn is not None and not self.conn.closed:
+            return
+
         load_dotenv()
 
         self.conn = psycopg2.connect(
@@ -248,24 +300,29 @@ class DatabaseConnection:
             self.conn.commit()
 
     def search_searchable_courses(self, term: str, query: str, page: int, per_page=10):
+        self.connect()
+
         with self.conn.cursor() as cur:
-            cur.execute(
-                """
-                SELECT *, ts_rank(to_tsvector('english', related_offering), plainto_tsquery(%(query)s))
-                + 5 * ts_rank(to_tsvector('english', long_title), plainto_tsquery(%(query)s))
-                AS relevance
-                FROM searchable_courses
-                WHERE registration_term = %(term)s AND (related_offering ILIKE %(query)s OR long_title ILIKE %(query)s)
-                ORDER BY relevance DESC
-                LIMIT %(per_page)s OFFSET %(per_page)s * %(page)s;
-                """,
-                {
-                    "term": term,
-                    "query": f"%{query}%",
-                    "per_page": per_page,
-                    "page": page,
-                },
+            query_string = """
+            SELECT *
+            FROM searchable_courses
+            WHERE lower(registration_term) ILIKE '%{query}%'
+            OR lower(related_offering) ILIKE '%{query}%'
+            OR lower(long_title) ILIKE '%{query}%'
+            OR lower(description) ILIKE '%{query}%'
+            OR lower(registration_term) % lower('{query}')
+            OR lower(related_offering) % lower('{query}')
+            OR lower(long_title) % lower('{query}')
+            OR lower(description) % lower('{query}')
+            ORDER BY similarity(lower(related_offering), lower('{query}')) DESC
+            LIMIT {per_page} OFFSET {per_page} * {page};
+            """
+
+            formatted_query = query_string.format(
+                query=query, per_page=per_page, page=page - 1
             )
+
+            cur.execute(formatted_query)
 
             rows = cur.fetchall()
             courses = []
@@ -287,8 +344,8 @@ class DatabaseConnection:
                 return False
             searchableCourse = self.row_to_searchable_course(rows[0])
             for section in searchableCourse.sections:
-                for course in section["courses"]:
-                    if course["CRN"] == course.CRN:
+                for section_course in section["courses"]:
+                    if section_course["CRN"] == course.CRN:
                         return True
                 for tutorial in section["tutorials"]:
                     if tutorial["CRN"] == course.CRN:
@@ -311,8 +368,8 @@ class DatabaseConnection:
             sections = searchableCourse.sections
             # now we want to iterate through the sections and find the section that the course is in, whether its in the courses or tutorials lists and then the exact index of the course in that list
             for section in sections:
-                for i, course in enumerate(section["courses"]):
-                    if course["CRN"] == course.CRN:
+                for i, section_course in enumerate(section["courses"]):
+                    if section_course["CRN"] == course.CRN:
                         section["courses"][i] = course.__dict__()
                         break
                 for i, tutorial in enumerate(section["tutorials"]):
@@ -331,6 +388,88 @@ class DatabaseConnection:
                     course.registration_term,
                 ),
             )
+
+    def search_by_course_code(
+        self, term: str, subject_code: str, page: int, per_page=10
+    ):
+        QUERY = """
+SELECT
+    course_details
+FROM (
+    SELECT
+        jsonb_array_elements(jsonb_array_elements(sc.sections)->'courses') AS course_details
+    FROM
+        searchable_courses sc
+    WHERE
+        sc.sections IS NOT NULL
+        AND sc.registration_term = %s
+) AS subquery
+WHERE
+    course_details->>'subject_code' = %s
+
+UNION ALL
+
+SELECT
+    tutorial_details
+FROM (
+    SELECT
+        jsonb_array_elements(jsonb_array_elements(sc.sections)->'tutorials') AS tutorial_details
+    FROM
+        searchable_courses sc
+    WHERE
+        sc.sections IS NOT NULL
+        AND sc.registration_term = %s
+) AS subquery
+WHERE
+    tutorial_details->>'subject_code' = %s;
+"""
+        with self.conn.cursor() as cur:
+            cur.execute(QUERY, (term, subject_code, term, subject_code))
+            rows = cur.fetchall()
+            courses = []
+            for row in rows:
+                courses.append(course_dict_to_course_details(row[0]))
+            return courses
+
+    def search_by_crn(self, term: str, crn: str, page: int, per_page=10):
+        with self.conn.cursor() as cur:
+            QUERY = """
+SELECT
+    course_details
+FROM (
+    SELECT
+        jsonb_array_elements(jsonb_array_elements(sc.sections)->'courses') AS course_details
+    FROM
+        searchable_courses sc
+    WHERE
+        sc.sections IS NOT NULL
+        AND sc.registration_term = %s
+) AS subquery
+WHERE
+    course_details->>'CRN' = %s
+
+UNION ALL
+
+SELECT
+    tutorial_details
+FROM (
+    SELECT
+        jsonb_array_elements(jsonb_array_elements(sc.sections)->'tutorials') AS tutorial_details
+    FROM
+        searchable_courses sc
+    WHERE
+        sc.sections IS NOT NULL
+        AND sc.registration_term = %s
+) AS subquery
+WHERE
+    tutorial_details->>'CRN' = %s;
+"""
+            cur.execute(QUERY, (term, crn, term, crn))
+            rows = cur.fetchall()
+            courses = []
+            for row in rows:
+                courses.append(course_dict_to_course_details(row[0]))
+            return courses
 
     def insert_course(self, course: CourseDetails):
         with self.conn.cursor() as cur:

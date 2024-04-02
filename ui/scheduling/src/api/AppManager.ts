@@ -1,11 +1,5 @@
-import { Instance, SnapshotIn, types } from "mobx-state-tree";
-import {
-    courseDetails,
-    courseSearch,
-    offeringSearch,
-    searchForOfferings,
-    searchableCourseSearch,
-} from "./api";
+import { Instance, SnapshotIn, getSnapshot, types } from "mobx-state-tree";
+import { crnSearch, searchableCourseSearch, courseCodeSearch } from "./api";
 
 import { CalendarEvent } from "../components/Calendar";
 import {
@@ -84,6 +78,11 @@ export const parseInstructor = (
     return name.join(" ");
 };
 
+export const parseSectionKey = (subject_code: string): string => {
+    const split = subject_code.split(" ");
+    return split[2][0] || "$";
+};
+
 export const stringToColor = (str: string): string => {
     // DJB2 hash function
     let hash = 5381;
@@ -110,6 +109,7 @@ export const stringToColor = (str: string): string => {
 export interface SectionModel {
     courses: CourseDetails[];
     tutorials: CourseDetails[];
+    sectionKey?: string;
 }
 
 const courseDetailsToEvent = (course: CourseDetails): CalendarEvent[] => {
@@ -145,9 +145,7 @@ const courseDetailsToEvent = (course: CourseDetails): CalendarEvent[] => {
                     onClick: () => {},
                     onHover: () => {},
                     onLeave: () => {},
-                    color: stringToColor(
-                        course.related_offering || course.subject_code || ""
-                    ),
+                    color: "#FF0000",
                     course: course,
                     meeting: meeting,
                     instructor: parseInstructor(meeting.instructor),
@@ -183,12 +181,184 @@ export const AppManager = types
         currentScheduleIndex: types.optional(types.number, 0),
         unwantedHours: types.optional(types.array(types.number), []), // 0-23
     })
+    .views((self) => ({
+        doesCRNExist(crn: string): boolean {
+            for (let offering of self.selectedOfferings) {
+                for (let sectionModel of offering.section_models) {
+                    for (let course of sectionModel.courses) {
+                        if (course.CRN === crn) {
+                            return true;
+                        }
+                    }
+                    for (let course of sectionModel.tutorials) {
+                        if (course.CRN === crn) {
+                            return true;
+                        }
+                    }
+                }
+            }
+            return false;
+        },
+    }))
+    .actions((self) => ({
+        addSingleLecture(lecture: CourseDetails) {
+            const related_offering_name =
+                lecture.related_offering || lecture.subject_code;
+            const sectionKey = parseSectionKey(lecture.subject_code);
+
+            let offering = self.selectedOfferings.find(
+                (o) => o.offering_name === related_offering_name
+            );
+
+            // No offering found, create a new one
+            if (offering === undefined) {
+                const sectionModel: SectionModel = {
+                    courses: [lecture],
+                    tutorials: [],
+                    sectionKey: sectionKey,
+                };
+
+                const newOffering = RelatedOffering.create({
+                    offering_name: related_offering_name,
+                    section_models: [sectionModel],
+                });
+
+                self.selectedOfferings.push(newOffering);
+                return;
+            }
+
+            // Offering found, add lecture to existing offering
+            // Find the section model to place it in by comparing each sectionModel.sectionKey
+            const offeringCopy = JSON.parse(
+                JSON.stringify(getSnapshot(offering))
+            );
+
+            let sectionModel = offeringCopy.section_models.find(
+                (s: any) => s.sectionKey === sectionKey
+            );
+
+            // No section model found, create a new one
+            if (sectionModel === undefined) {
+                sectionModel = {
+                    courses: [lecture],
+                    tutorials: [],
+                    sectionKey: sectionKey,
+                };
+                offeringCopy.section_models.push(sectionModel);
+                return;
+            } else {
+                // Section model found, add lecture to existing section model
+                sectionModel.courses.push(lecture);
+            }
+
+            // remove offering from selected offerings
+            self.selectedOfferings.splice(
+                self.selectedOfferings.indexOf(offering),
+                1
+            );
+
+            // add offering back to selected offerings
+            self.selectedOfferings.push(offeringCopy);
+        },
+        addSingleTutorial(tutorial: CourseDetails) {
+            const related_offering_name =
+                tutorial.related_offering || tutorial.subject_code;
+            const sectionKey = parseSectionKey(tutorial.subject_code);
+
+            let offering = self.selectedOfferings.find(
+                (o) => o.offering_name === related_offering_name
+            );
+
+            // No offering found, create a new one
+            if (offering === undefined) {
+                const sectionModel: SectionModel = {
+                    courses: [],
+                    tutorials: [tutorial],
+                    sectionKey: sectionKey,
+                };
+
+                const newOffering = RelatedOffering.create({
+                    offering_name: related_offering_name,
+                    section_models: [sectionModel],
+                });
+
+                self.selectedOfferings.push(newOffering);
+                return;
+            }
+
+            // Offering found, add tutorial to existing offering
+            // Find the section model to place it in by comparing each sectionModel.sectionKey
+            const offeringCopy = JSON.parse(
+                JSON.stringify(getSnapshot(offering))
+            ); // well damn me
+
+            let sectionModel = offeringCopy.section_models.find(
+                (s: any) => s.sectionKey === sectionKey
+            );
+
+            // No section model found, create a new one
+            if (sectionModel === undefined) {
+                sectionModel = {
+                    courses: [],
+                    tutorials: [tutorial],
+                    sectionKey: sectionKey,
+                };
+
+                offeringCopy.section_models.push(sectionModel);
+            } else {
+                sectionModel.tutorials.push(tutorial);
+            }
+
+            // remove offering from selected offerings
+            self.selectedOfferings.splice(
+                self.selectedOfferings.indexOf(offering),
+                1
+            );
+
+            // add offering back to selected offerings
+            self.selectedOfferings.push(offeringCopy);
+        },
+    }))
     .actions((self) => ({
         addOffering(offering: SnapshotIn<typeof RelatedOffering>) {
             const newOffering = RelatedOffering.create(offering);
             self.selectedOfferings.push(newOffering);
             self.currentScheduleIndex = 0;
         },
+
+        addSingleCourse(course: CourseDetails) {
+            if (self.doesCRNExist(course.CRN)) {
+                toaster.negative("Course already exists in schedule", {});
+                return;
+            }
+
+            const lectureAliases = [
+                "Lecture",
+                "Seminar",
+                "Studio",
+                "Comprehensive",
+                "Practicum",
+                "Other",
+                "Workshop",
+                "PhD Thesis",
+                "Masters Thesis",
+                "Directed Studies",
+                "Honours Essay",
+                "Problem Analysis",
+            ]; // can also be found in models.py
+            const isLecture = lectureAliases.includes(course.schedule_type);
+
+            if (isLecture) {
+                self.addSingleLecture(course);
+            } else {
+                self.addSingleTutorial(course);
+            }
+
+            console.log(self.selectedOfferings.toJSON());
+
+            self.currentScheduleIndex = 0;
+        },
+
         removeOffering(offering: Instance<typeof RelatedOffering>) {
             // search by offering_name
             const index = self.selectedOfferings.findIndex(
@@ -208,30 +378,20 @@ export const AppManager = types
         },
     }))
     .actions((self) => ({
-        async fetchCourseDetails(crn: string) {
-            return await courseDetails(convert_term(self.selectedTerm), crn);
-        },
-        async fetchCourseSearch(searchTerm: string, page: number) {
-            return await courseSearch(searchTerm, page);
-        },
-        async fetchOfferingSearch(subject: string, code: string, page: number) {
-            return await offeringSearch(
-                convert_term(self.selectedTerm),
-                subject,
-                code,
-                page
-            );
-        },
-        async fetchSearchForOfferings(searchTerm: string): Promise<string[]> {
-            return await searchForOfferings(
-                convert_term(self.selectedTerm),
-                searchTerm
-            );
-        },
         async fetchSearchableCourses(searchTerm: string, page: number) {
             return await searchableCourseSearch(
                 convert_term(self.selectedTerm),
                 searchTerm,
+                page
+            );
+        },
+        async searchByCRN(crn: string, page: number) {
+            return await crnSearch(convert_term(self.selectedTerm), crn, page);
+        },
+        async searchByCourseCode(subject_code: string, page: number) {
+            return await courseCodeSearch(
+                convert_term(self.selectedTerm),
+                subject_code,
                 page
             );
         },
