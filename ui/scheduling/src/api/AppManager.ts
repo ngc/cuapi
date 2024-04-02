@@ -145,9 +145,7 @@ const courseDetailsToEvent = (course: CourseDetails): CalendarEvent[] => {
                     onClick: () => {},
                     onHover: () => {},
                     onLeave: () => {},
-                    color: stringToColor(
-                        course.related_offering || course.subject_code || ""
-                    ),
+                    color: "#FF0000",
                     course: course,
                     meeting: meeting,
                     instructor: parseInstructor(meeting.instructor),

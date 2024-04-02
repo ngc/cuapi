@@ -12,6 +12,7 @@ import { RelatedOffering } from "../api/AppManager";
 import { SegmentedControl, Segment } from "baseui/segmented-control";
 import { TermPicker } from "./App";
 import { debounce } from "lodash";
+import { toaster } from "baseui/toast";
 
 export const AddCourseButton = (props: { onClick: () => void }) => {
     return (
@@ -201,6 +202,19 @@ export const SearchResultItem = observer(
             <div
                 onClick={async () => {
                     props.closeModal();
+
+                    // check if course is already added
+                    if (
+                        appManager.selectedOfferings.find(
+                            (offering) =>
+                                offering.offering_name ===
+                                props.course.related_offering
+                        )
+                    ) {
+                        toaster.warning("Course already added");
+                        return;
+                    }
+
                     appManager.addOffering({
                         offering_name: props.course.related_offering,
                         section_models: props.course.sections,

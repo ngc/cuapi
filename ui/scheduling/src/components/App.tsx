@@ -67,6 +67,8 @@ export const App = observer(() => {
         window.innerWidth <= 768 || window.innerHeight <= 768
     );
 
+    const appManager = useAppManager();
+
     useLayoutEffect(() => {
         function updateSize() {
             setIsMobile(window.innerWidth <= 768 || window.innerHeight <= 768);
@@ -199,6 +201,7 @@ export const App = observer(() => {
                                 transform: "scale(1)",
                             }}
                             mobile={true}
+                            key={appManager.currentScheduleIndex}
                         />
                     </Row>
                     <Row>

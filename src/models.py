@@ -5,6 +5,49 @@ from dotenv import load_dotenv
 import os
 
 
+def course_dict_to_course_details(course_dict):
+    section_information = SectionInformation(
+        course_dict["section_information"]["section_type"],
+        course_dict["section_information"]["suitability"],
+    )
+
+    meeting_details = []
+    for meeting in course_dict["meeting_details"]:
+        meeting_details.append(
+            MeetingDetails(
+                meeting["meeting_date"],
+                meeting["days"],
+                meeting["time"],
+                meeting["schedule_type"],
+                meeting["instructor"],
+            )
+        )
+
+    course_details = CourseDetails(
+        course_dict["registration_term"],
+        course_dict["CRN"],
+        course_dict["subject_code"],
+        course_dict["long_title"],
+        course_dict["short_title"],
+        course_dict["course_description"],
+        course_dict["course_credit_value"],
+        course_dict["schedule_type"],
+        course_dict["session_info"],
+        course_dict["registration_status"],
+        section_information,
+        course_dict["year_in_program_restriction"],
+        course_dict["level_restriction"],
+        course_dict["degree_restriction"],
+        course_dict["major_restriction"],
+        course_dict["program_restrictions"],
+        course_dict["department_restriction"],
+        course_dict["faculty_restriction"],
+        meeting_details,
+    )
+
+    return course_details
+
+
 def format_registration_term(term: str) -> str:
     if "Fall" in term:
         return "F"
@@ -177,7 +220,16 @@ class CourseDetails:
 
 
 class DatabaseConnection:
+
     def __init__(self) -> None:
+        self.conn = None
+        self.connect()
+        self.initialize_db()
+
+    def connect(self):
+        if self.conn is not None and not self.conn.closed:
+            return
+
         load_dotenv()
 
         self.conn = psycopg2.connect(
@@ -248,6 +300,8 @@ class DatabaseConnection:
             self.conn.commit()
 
     def search_searchable_courses(self, term: str, query: str, page: int, per_page=10):
+        self.connect()
+
         with self.conn.cursor() as cur:
             cur.execute(
                 """
@@ -287,8 +341,8 @@ class DatabaseConnection:
                 return False
             searchableCourse = self.row_to_searchable_course(rows[0])
             for section in searchableCourse.sections:
-                for course in section["courses"]:
-                    if course["CRN"] == course.CRN:
+                for section_course in section["courses"]:
+                    if section_course["CRN"] == course.CRN:
                         return True
                 for tutorial in section["tutorials"]:
                     if tutorial["CRN"] == course.CRN:
@@ -311,8 +365,8 @@ class DatabaseConnection:
             sections = searchableCourse.sections
             # now we want to iterate through the sections and find the section that the course is in, whether its in the courses or tutorials lists and then the exact index of the course in that list
             for section in sections:
-                for i, course in enumerate(section["courses"]):
-                    if course["CRN"] == course.CRN:
+                for i, section_course in enumerate(section["courses"]):
+                    if section_course["CRN"] == course.CRN:
                         section["courses"][i] = course.__dict__()
                         break
                 for i, tutorial in enumerate(section["tutorials"]):

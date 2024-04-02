@@ -1,4 +1,4 @@
-from src.models import CourseDetails
+from src.models import CourseDetails, DatabaseConnection, course_dict_to_course_details
 from src.scraper import CourseScraper
 from concurrent.futures import ThreadPoolExecutor
 import requests
@@ -31,11 +31,19 @@ def scrape_courses(term, subject):
     return courses
 
 
+def scrape_then_add_to_db(term, subject, db_connection: DatabaseConnection):
+    courses = scrape_courses(term, subject)
+    for course in courses:
+        print(f"Adding {course.subject_code} to the database")
+        db_connection.insert_course(course)
+
+
 def populate_db():
     scraper = CourseScraper()
     terms = scraper.get_terms()
     subjects = scraper.get_subjects()
     futures = []
+
     with ThreadPoolExecutor(max_workers=20) as executor:
         for term in terms:
             for subject in subjects:
@@ -53,5 +61,39 @@ def populate_db():
     return True
 
 
+"""
+Uses a connection to a local postgresql database to populate the database with course data
+"""
+
+
+def populate_db_locally():
+    scraper = CourseScraper()
+    terms = scraper.get_terms()
+    subjects = scraper.get_subjects()
+
+    db_connection = DatabaseConnection()
+    futures = []
+
+    with ThreadPoolExecutor(max_workers=20) as executor:
+        for term in terms:
+            for subject in subjects:
+                print(f"Scraping {subject} for term {term}")
+                futures.append(executor.submit(scrape_courses, term, subject))
+
+        executor.shutdown(wait=True)
+
+    for future in futures:
+        courses = future.result()
+        for course in courses:
+            print(f"Adding {course.subject_code} to the database")
+            db_connection.insert_course(course)
+
+    return True
+
+
 if __name__ == "__main__":
-    populate_db()
+    answer = input("Locally or remotely? (l/r): ")
+    if answer == "l":
+        populate_db_locally()
+    else:
+        populate_db()

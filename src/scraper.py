@@ -47,8 +47,7 @@ class CourseScraper:
         print("initialized scraper")
 
     def get_course_data(self, course_url: str) -> CourseDetails:
-        self.driver.get(course_url)
-        html = self.driver.page_source
+        html = requests.get(course_url, timeout=5).text
         soup = BeautifulSoup(html, "html.parser")
 
         def find_next_or_none(search_term: str):
