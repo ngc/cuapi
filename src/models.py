@@ -386,6 +386,46 @@ class DatabaseConnection:
                 ),
             )
 
+    def search_by_crn(self, term: str, crn: str, page: int, per_page=10):
+        with self.conn.cursor() as cur:
+            QUERY = """
+SELECT
+    course_details
+FROM (
+    SELECT
+        jsonb_array_elements(jsonb_array_elements(sc.sections)->'courses') AS course_details
+    FROM
+        searchable_courses sc
+    WHERE
+        sc.sections IS NOT NULL
+        AND sc.registration_term = %s
+) AS subquery
+WHERE
+    course_details->>'CRN' = %s
+
+UNION ALL
+
+SELECT
+    tutorial_details
+FROM (
+    SELECT
+        jsonb_array_elements(jsonb_array_elements(sc.sections)->'tutorials') AS tutorial_details
+    FROM
+        searchable_courses sc
+    WHERE
+        sc.sections IS NOT NULL
+        AND sc.registration_term = %s
+) AS subquery
+WHERE
+    tutorial_details->>'CRN' = %s;
+"""
+            cur.execute(QUERY, (term, crn, term, crn))
+            rows = cur.fetchall()
+            courses = []
+            for row in rows:
+                courses.append(course_dict_to_course_details(row[0]))
+            return courses
+
     def insert_course(self, course: CourseDetails):
         with self.conn.cursor() as cur:
             if self.course_exists(course):

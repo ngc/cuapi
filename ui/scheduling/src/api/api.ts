@@ -70,8 +70,6 @@ export interface SearchableCourse {
     sections: SectionModel[];
 }
 
-type CourseOfferingName = string;
-
 const IS_DEV = window.location.hostname === "localhost";
 
 const API_URL = IS_DEV
@@ -104,40 +102,11 @@ export async function searchableCourseSearch(
     return response.json();
 }
 
-export async function courseSearch(
-    searchTerm: string,
+export async function crnSearch(
+    term: string,
+    crn: string,
     page: number
 ): Promise<CourseDetails[]> {
-    const response = await fetch(`${API_URL}search/${searchTerm}/${page}`);
-    return response.json();
-}
-
-export async function courseDetails(
-    term: string,
-    crn: string
-): Promise<CourseDetails> {
-    const response = await fetch(`${API_URL}course/${term}/${crn}`);
-    return response.json();
-}
-
-export async function offeringSearch(
-    term: string,
-    subject: string,
-    code: string,
-    page: number
-): Promise<CourseDetails[]> {
-    const response = await fetch(
-        `${API_URL}offering/${term}/${subject}/${code}/${page}`
-    );
-    return response.json();
-}
-
-export async function searchForOfferings(
-    term: string,
-    searchTerm: string
-): Promise<CourseOfferingName[]> {
-    const response = await fetch(
-        `${API_URL}search-offerings/${term}/${searchTerm}`
-    );
+    const response = await fetch(`${API_URL}crn/${term}/${crn}/${page}`);
     return response.json();
 }

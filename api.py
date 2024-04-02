@@ -39,6 +39,25 @@ class AddCourse(Resource):
         return "success"
 
 
+"""
+export async function crnSearch(
+    term: string,
+    crn: string,
+    page: number
+): Promise<CourseDetails[]> {
+    const response = await fetch(`${API_URL}crn/${term}/${crn}/${page}`);
+    return response.json();
+}
+"""
+
+
+class SearchByCrn(Resource):
+    def get(self, term: str, crn: str, page: int):
+        dict_list = [course.__dict__() for course in db.search_by_crn(term, crn, page)]
+
+        return jsonify(dict_list)
+
+
 class SearchableCourseSearch(Resource):
     def get(self, term: str, search_term: str, page: int):
         dict_list = [
@@ -54,6 +73,7 @@ api.add_resource(
     SearchableCourseSearch,
     "/searchable-courses/<string:term>/<string:search_term>/<int:page>",
 )
+api.add_resource(SearchByCrn, "/crn/<string:term>/<string:crn>/<int:page>")
 
 
 def run_dev_server():

@@ -1,11 +1,5 @@
 import { Instance, SnapshotIn, types } from "mobx-state-tree";
-import {
-    courseDetails,
-    courseSearch,
-    offeringSearch,
-    searchForOfferings,
-    searchableCourseSearch,
-} from "./api";
+import { crnSearch, searchableCourseSearch } from "./api";
 
 import { CalendarEvent } from "../components/Calendar";
 import {
@@ -187,6 +181,94 @@ export const AppManager = types
             self.selectedOfferings.push(newOffering);
             self.currentScheduleIndex = 0;
         },
+
+        addSingleCourse(course: CourseDetails) {
+            // we need to figure out some of the data that is not provided that would otherwise be in a RelatedOffering
+            const lectureAliases = [
+                "Lecture",
+                "Seminar",
+                "Studio",
+                "Comprehensive",
+                "Practicum",
+                "Other",
+                "Workshop",
+                "PhD Thesis",
+                "Masters Thesis",
+                "Directed Studies",
+                "Honours Essay",
+                "Problem Analysis",
+            ]; // can also be found in models.py
+            const isLecture = lectureAliases.includes(
+                course.section_information.section_type
+            );
+
+            if (isLecture) {
+                // case 1
+                let found = false;
+                for (let offering of self.selectedOfferings) {
+                    for (let sectionModel of offering.section_models) {
+                        if (sectionModel.courses.length > 0) {
+                            for (let c of sectionModel.courses) {
+                                if (c.CRN === course.CRN) {
+                                    found = true;
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                }
+
+                if (found) return;
+
+                let newOffering = RelatedOffering.create({
+                    offering_name:
+                        course.related_offering || course.subject_code,
+                    section_models: [
+                        {
+                            courses: [course],
+                            tutorials: [],
+                        },
+                    ],
+                });
+
+                self.selectedOfferings.push(newOffering);
+            }
+
+            if (!isLecture) {
+                // case 2
+                let found = false;
+                for (let offering of self.selectedOfferings) {
+                    for (let sectionModel of offering.section_models) {
+                        if (sectionModel.tutorials.length > 0) {
+                            for (let c of sectionModel.tutorials) {
+                                if (c.CRN === course.CRN) {
+                                    found = true;
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                }
+
+                if (found) return;
+
+                let newOffering = RelatedOffering.create({
+                    offering_name:
+                        course.related_offering || course.subject_code,
+                    section_models: [
+                        {
+                            courses: [],
+                            tutorials: [course],
+                        },
+                    ],
+                });
+
+                self.selectedOfferings.push(newOffering);
+            }
+
+            self.currentScheduleIndex = 0;
+        },
+
         removeOffering(offering: Instance<typeof RelatedOffering>) {
             // search by offering_name
             const index = self.selectedOfferings.findIndex(
@@ -206,32 +288,15 @@ export const AppManager = types
         },
     }))
     .actions((self) => ({
-        async fetchCourseDetails(crn: string) {
-            return await courseDetails(convert_term(self.selectedTerm), crn);
-        },
-        async fetchCourseSearch(searchTerm: string, page: number) {
-            return await courseSearch(searchTerm, page);
-        },
-        async fetchOfferingSearch(subject: string, code: string, page: number) {
-            return await offeringSearch(
-                convert_term(self.selectedTerm),
-                subject,
-                code,
-                page
-            );
-        },
-        async fetchSearchForOfferings(searchTerm: string): Promise<string[]> {
-            return await searchForOfferings(
-                convert_term(self.selectedTerm),
-                searchTerm
-            );
-        },
         async fetchSearchableCourses(searchTerm: string, page: number) {
             return await searchableCourseSearch(
                 convert_term(self.selectedTerm),
                 searchTerm,
                 page
             );
+        },
+        async searchByCRN(crn: string, page: number) {
+            return await crnSearch(convert_term(self.selectedTerm), crn, page);
         },
     }))
     .extend((self) => {

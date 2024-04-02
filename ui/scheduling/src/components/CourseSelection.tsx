@@ -8,10 +8,9 @@ import { useAppManager } from "../main";
 import { Column, Row } from "./util";
 import { Button } from "baseui/button";
 import { Instance } from "mobx-state-tree";
-import { RelatedOffering } from "../api/AppManager";
+import { CourseDetails, RelatedOffering } from "../api/AppManager";
 import { SegmentedControl, Segment } from "baseui/segmented-control";
 import { TermPicker } from "./App";
-import { debounce } from "lodash";
 import { toaster } from "baseui/toast";
 
 export const AddCourseButton = (props: { onClick: () => void }) => {
@@ -192,14 +191,150 @@ export const CourseSelectionList = observer(
     }
 );
 
-export const SearchResultItem = observer(
+interface DisplayType {
+    long_title: string;
+    description: string;
+    related_offering: string;
+    section_count: number;
+}
+
+export const CourseResultDisplay = (props: {
+    course: DisplayType;
+    onClick: () => void;
+}) => {
+    const [css, _$theme] = useStyletron();
+
+    return (
+        <div
+            onClick={props.onClick}
+            className={css({
+                width: "100%",
+                border: `1px solid black`,
+                padding: "10px",
+                cursor: "pointer",
+                display: "flex",
+                flexDirection: "column",
+                gap: "0px",
+                // align top
+                alignItems: "flex-start",
+                borderRadius: "5px",
+                ":hover": {
+                    backgroundColor: "rgba(0, 0, 0, 0.1)",
+                },
+            })}
+        >
+            <Row
+                $style={{
+                    padding: "0px",
+                }}
+            >
+                <Column>
+                    <Row
+                        $style={{
+                            gap: "0px",
+                        }}
+                    >
+                        <p
+                            className={css({
+                                fontSize: "1.15em",
+                                fontWeight: "500",
+                                margin: "0px",
+                                padding: "0px",
+                            })}
+                        >
+                            {props.course.long_title}
+                        </p>
+                    </Row>
+                    <Row
+                        $style={{
+                            color: "rgba(0, 0, 0, 0.5)",
+
+                            margin: "0px",
+                            padding: "0px",
+                        }}
+                    >
+                        <p
+                            className={css({
+                                margin: "0px",
+                                padding: "0px",
+                            })}
+                        >
+                            {props.course.related_offering} |{" "}
+                            {props.course.section_count &&
+                                props.course.section_count +
+                                    " section" +
+                                    (props.course.section_count > 1 ? "s" : "")}
+                        </p>
+                    </Row>
+                </Column>
+            </Row>
+            <Row
+                $style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    justifyContent: "flex-start",
+                    alignContent: "flex-start",
+                    textAlign: "left",
+                    width: "100%",
+                }}
+            >
+                {props.course.description}
+            </Row>
+        </div>
+    );
+};
+
+export const CRNSearchResultItem = observer(
+    (props: { course: CourseDetails; closeModal: () => void }) => {
+        const [css, _$theme] = useStyletron();
+
+        const appManager = useAppManager();
+        const displayInfo = {
+            long_title: props.course.subject_code,
+            description: props.course.course_description,
+            related_offering: props.course.subject_code,
+            section_count: 1,
+        };
+
+        return (
+            <CourseResultDisplay
+                onClick={async () => {
+                    props.closeModal();
+
+                    // check if course is already added
+                    if (
+                        appManager.selectedOfferings.find(
+                            (offering) =>
+                                offering.offering_name ===
+                                props.course.related_offering
+                        )
+                    ) {
+                        toaster.warning("Course already added");
+                        return;
+                    }
+
+                    appManager.addSingleCourse(props.course);
+                }}
+                course={displayInfo}
+            />
+        );
+    }
+);
+
+export const SearchableCourseResultItem = observer(
     (props: { course: SearchableCourse; closeModal: () => void }) => {
         const [css, _$theme] = useStyletron();
 
         const appManager = useAppManager();
+        const displayInfo = {
+            long_title: props.course.long_title,
+            description: props.course.description,
+            related_offering: props.course.related_offering,
+            section_count: props.course.sections.length,
+        };
 
         return (
-            <div
+            <CourseResultDisplay
                 onClick={async () => {
                     props.closeModal();
 
@@ -220,109 +355,59 @@ export const SearchResultItem = observer(
                         section_models: props.course.sections,
                     });
                 }}
-                // card styling
-                className={css({
-                    width: "100%",
-                    border: `1px solid black`,
-                    padding: "10px",
-                    cursor: "pointer",
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: "0px",
-                    // align top
-                    alignItems: "flex-start",
-                    borderRadius: "5px",
-                    ":hover": {
-                        backgroundColor: "rgba(0, 0, 0, 0.1)",
-                    },
-                })}
-            >
-                <Row
-                    $style={{
-                        padding: "0px",
-                    }}
-                >
-                    <Column>
-                        <Row
-                            $style={{
-                                gap: "0px",
-                            }}
-                        >
-                            <p
-                                className={css({
-                                    fontSize: "1.15em",
-                                    fontWeight: "500",
-                                    margin: "0px",
-                                    padding: "0px",
-                                })}
-                            >
-                                {props.course.long_title}
-                            </p>
-                        </Row>
-                        <Row
-                            $style={{
-                                color: "rgba(0, 0, 0, 0.5)",
-
-                                margin: "0px",
-                                padding: "0px",
-                            }}
-                        >
-                            <p
-                                className={css({
-                                    margin: "0px",
-                                    padding: "0px",
-                                })}
-                            >
-                                {props.course.related_offering} |{" "}
-                                {props.course.sections.length}{" "}
-                                {"section" +
-                                    (props.course.sections.length > 1
-                                        ? "s"
-                                        : "")}
-                            </p>
-                        </Row>
-                    </Column>
-                </Row>
-                <Row
-                    $style={{
-                        display: "flex",
-                        flexDirection: "column",
-                        justifyContent: "flex-start",
-                        alignContent: "flex-start",
-                        textAlign: "left",
-                        width: "100%",
-                    }}
-                >
-                    {props.course.description}
-                </Row>
-            </div>
+                course={displayInfo}
+            />
         );
     }
 );
+
+enum SearchType {
+    SUBJECT_CODE = 0,
+    CRN = 1,
+    COURSE_CODE = 2,
+}
 
 export const CourseSelectionModal = (props: {
     isOpen: boolean;
     onClose: () => void;
     showCourses?: boolean;
 }) => {
-    const [searchResults, setSearchResults] = useState<SearchableCourse[]>([]);
+    const [searchResults, setSearchResults] = useState<
+        SearchableCourse[] | CourseDetails[]
+    >([]);
     const [searchQuery, setSearchQuery] = useState("");
     const appManager = useAppManager();
-    const [activeTab, setActiveTab] = useState(0);
+    const [activeTab, setActiveTab] = useState<number>(SearchType.CRN);
 
     useEffect(() => {
-        const fetchData = async () => {
-            const results = await appManager.fetchSearchableCourses(
-                searchQuery,
-                1
-            );
+        const fetchData = async (activeTab: number, searchQuery: string) => {
+            let results = [];
+
+            switch (activeTab) {
+                case SearchType.SUBJECT_CODE:
+                    results = await appManager.fetchSearchableCourses(
+                        searchQuery,
+                        1
+                    );
+                    break;
+                case SearchType.CRN:
+                    results = await appManager.searchByCRN(searchQuery, 1);
+                    break;
+                default:
+                    results = (await new Promise((resolve) => {
+                        resolve([]);
+                    })) as CourseDetails[]; // TODO: implement course code search
+                    break;
+            }
+
             setSearchResults(results);
         };
+        fetchData(activeTab, searchQuery);
 
-        debounce(() => {
-            fetchData();
-        }, 300)();
-    }, [searchQuery]);
+        return () => {
+            setSearchResults([]);
+        };
+    }, [searchQuery, activeTab]);
 
     return (
         <Modal
@@ -391,7 +476,8 @@ export const CourseSelectionModal = (props: {
                         }}
                         activeKey={activeTab}
                         onChange={({ activeKey }) => {
-                            setActiveTab(activeKey as number);
+                            setSearchResults([]);
+                            setActiveTab(parseInt(activeKey as string));
                         }}
                     >
                         <Segment
@@ -403,7 +489,6 @@ export const CourseSelectionModal = (props: {
                             artwork={() => "🤓"}
                             label="By CRN"
                             description="Example: 11213"
-                            disabled={true}
                         />
                         <Segment
                             artwork={() => "😡"}
@@ -430,22 +515,41 @@ export const CourseSelectionModal = (props: {
                             "linear-gradient(to bottom, black 0%, black calc(100% - 50px), transparent 100%)",
                     }}
                 >
-                    {searchResults.map((course) => {
-                        return (
-                            <Row
-                                key={course.related_offering}
-                                $style={{
-                                    width: "100%",
-                                    justifyContent: "center",
-                                }}
-                            >
-                                <SearchResultItem
-                                    course={course}
-                                    closeModal={props.onClose}
-                                />
-                            </Row>
-                        );
-                    })}
+                    {activeTab === SearchType.SUBJECT_CODE &&
+                        (searchResults as SearchableCourse[]).map((course) => {
+                            return (
+                                <Row
+                                    key={course.related_offering}
+                                    $style={{
+                                        width: "100%",
+                                        justifyContent: "center",
+                                    }}
+                                >
+                                    <SearchableCourseResultItem
+                                        course={course as SearchableCourse}
+                                        closeModal={props.onClose}
+                                    />
+                                </Row>
+                            );
+                        })}
+
+                    {activeTab === SearchType.CRN &&
+                        (searchResults as CourseDetails[]).map((course) => {
+                            return (
+                                <Row
+                                    key={course.CRN}
+                                    $style={{
+                                        width: "100%",
+                                        justifyContent: "center",
+                                    }}
+                                >
+                                    <CRNSearchResultItem
+                                        course={course as CourseDetails}
+                                        closeModal={props.onClose}
+                                    />
+                                </Row>
+                            );
+                        })}
                 </Column>
             </Column>
         </Modal>
