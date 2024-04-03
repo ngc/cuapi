@@ -6,10 +6,10 @@ RUN apt-get update \
     && apt-get install -y certbot python3-certbot-nginx
 
 # Copy the Nginx configuration template
-COPY nginx.conf.template /etc/nginx/nginx.conf.template
+COPY config/nginx.conf.template /etc/nginx/nginx.conf.template
 
 # Copy the modified startup script
-COPY start-nginx.sh /start-nginx.sh
+COPY scripts/start-nginx.sh /start-nginx.sh
 RUN chmod +x /start-nginx.sh
 
 # Set up the entrypoint to use the startup script

@@ -2,7 +2,7 @@
 FROM node:18
 
 # Set the working directory in the container to the scheduling directory
-WORKDIR /usr/src/app/ui/scheduling
+WORKDIR /usr/src/app
 
 # Copy package.json and yarn.lock to the working directory
 COPY ui/scheduling/package.json ui/scheduling/yarn.lock ./
@@ -16,10 +16,11 @@ COPY ui/scheduling/ .
 # Build the application
 RUN yarn run build
 
-EXPOSE 3959
-
-# run server with port 3959
+# Install the serve package globally
 RUN yarn global add serve
+
+# Expose port 3959
+EXPOSE 3959
 
 # Serve the static files
 CMD ["serve", "-s", "dist", "-l", "3959"]

@@ -3,7 +3,7 @@ services:
   nginx:
     build:
       context: .
-      dockerfile: Dockerfile.nginx
+      dockerfile: ./docker/Dockerfile.nginx
     volumes:
       - certbot-data:/etc/letsencrypt
       - certbot-logs:/var/log/letsencrypt
@@ -23,7 +23,7 @@ services:
   backend:
     build:
       context: .
-      dockerfile: Dockerfile.backend
+      dockerfile: ./docker/Dockerfile.backend
     image: nathanngc/backend:latest
     env_file:
       - .env
@@ -42,7 +42,7 @@ services:
   frontend:
     build:
       context: .
-      dockerfile: Dockerfile.frontend
+      dockerfile: ./docker/Dockerfile.frontend
     env_file:
       - .env
     ports:
@@ -74,7 +74,7 @@ services:
   celery:
     build:
       context: .
-      dockerfile: Dockerfile.celery
+      dockerfile: ./docker/Dockerfile.celery
     env_file:
       - .env
     environment:

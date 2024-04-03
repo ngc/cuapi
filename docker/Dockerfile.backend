@@ -4,23 +4,21 @@ FROM python:3.11-slim
 # Set the working directory in the container
 WORKDIR /usr/src/app
 
-COPY requirements.txt .
-
-# Install any needed packages specified in requirements.txt
+# Copy requirements.txt and install dependencies
+COPY backend/requirements.txt .
 RUN pip install -r requirements.txt
 
+# Expose port 3969
 EXPOSE 3969
 
-# Define environment variables
-# Use environment variables from docker-compose.yml
-
-# run wget and download https://raw.githubusercontent.com/vishnubob/wait-for-it/master/wait-for-it.sh
-RUN apt-get update && apt-get install -y wget
-RUN wget https://raw.githubusercontent.com/vishnubob/wait-for-it/master/wait-for-it.sh
+# Copy wait-for-it.sh from the scripts directory and make it executable
+COPY scripts/wait-for-it.sh .
 RUN chmod +x wait-for-it.sh
 
-COPY . .
+# Copy the backend directory contents into the container
+COPY backend .
 
+# Set environment variables from arguments
 ARG WORKER_KEY
 ARG POSTGRES_HOST
 ARG POSTGRES_USER
