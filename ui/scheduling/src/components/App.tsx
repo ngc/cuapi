@@ -38,6 +38,11 @@ export const TermPicker = observer(() => {
                         zIndex: 1000,
                     },
                 },
+                ControlContainer: {
+                    style: {
+                        backgroundColor: "rgba(255, 255, 255, 0.5)",
+                    },
+                },
             }}
             clearable={false}
             searchable={false}
@@ -89,7 +94,7 @@ export const App = observer(() => {
                     <Row
                         $style={{
                             alignItems: "center",
-                            justifyContent: "space-between",
+                            justifyContent: "center",
                             width: "100%",
                             paddingLeft: "10px",
                         }}
@@ -101,17 +106,6 @@ export const App = observer(() => {
                         >
                             <img src={Wordmark} alt="cuScheduling" />
                         </Row>
-                        <div
-                            className={css({
-                                width: "10%",
-                                paddingRight: "60px",
-                                display: "flex",
-                                justifyContent: "center",
-                                alignItems: "center",
-                            })}
-                        >
-                            <TermPicker />
-                        </div>
                     </Row>
 
                     <Column
@@ -132,6 +126,16 @@ export const App = observer(() => {
                                         setIsOpen(true);
                                     }}
                                 />
+                                <div
+                                    className={css({
+                                        marginLeft: "20px",
+                                        marginRight: "20px",
+                                        boxShadow:
+                                            "0 4px 8px 0 rgba(0, 0, 0, 0.2)",
+                                    })}
+                                >
+                                    <TermPicker />
+                                </div>
                             </Column>
                             <Column
                                 $style={{

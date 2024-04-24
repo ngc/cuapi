@@ -11,7 +11,7 @@
     margin: 0;
     height: 100%;
     padding: 0;
-    border: 1px solid #000;
+    /* border: 1px solid #000; */
     border-radius: 5px;
     background-color: rgba(255, 255, 255, 0.4);
     box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2);
@@ -24,7 +24,7 @@
     */
     margin: 0;
     padding: 0;
-    border: 1px solid #000;
+    border-radius: 10px;
 }
 
 /*
@@ -57,5 +57,5 @@ each column of the table
 }
 
 .header-row{
-    font-family: 'Inconsolata', monospace;
+    font-family: 'Lucida Grande', 'Lucida Sans Unicode', 'Lucida Sans', Geneva, Verdana, sans-serif;
 }

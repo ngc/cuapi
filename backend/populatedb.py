@@ -7,7 +7,7 @@ from dotenv import load_dotenv
 import time
 
 load_dotenv()
-URL = "https://localhost:3969"
+URL = "https://cuapi.cuscheduling.com"
 
 
 def add_course(course: CourseDetails):
@@ -91,9 +91,34 @@ def populate_db_locally():
     return True
 
 
+def populate_db_slowly():
+    scraper = CourseScraper()
+    terms = scraper.get_terms()
+    subjects = scraper.get_subjects()
+
+    futures = []
+
+    with ThreadPoolExecutor(max_workers=20) as executor:
+        for term in terms:
+            for subject in subjects:
+                print(f"Scraping {subject} for term {term}")
+                futures.append(executor.submit(scrape_courses, term, subject))
+
+        executor.shutdown(wait=True)
+
+    for future in futures:
+        courses = future.result()
+        for course in courses:
+            print(f"Adding {course.subject_code} to the database")
+            add_course(course)
+            time.sleep(1)
+
+    return True
+
+
 if __name__ == "__main__":
     answer = input("Locally or remotely? (l/r): ")
     if answer == "l":
         populate_db_locally()
     else:
-        populate_db()
+        populate_db_slowly()

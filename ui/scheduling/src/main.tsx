@@ -3,7 +3,7 @@ import ReactDOM from "react-dom/client";
 import App from "./components/App.tsx";
 import { Client as Styletron } from "styletron-engine-monolithic";
 import { Provider as StyletronProvider } from "styletron-react";
-import { LightTheme, BaseProvider, useStyletron } from "baseui";
+import { LightTheme, BaseProvider, useStyletron, Theme } from "baseui";
 import { Instance, onSnapshot } from "mobx-state-tree";
 import { AppManager } from "./api/AppManager.ts";
 import { observer } from "mobx-react-lite";
@@ -98,6 +98,48 @@ const loadOrCreateAppManager = () => {
     return AppManager.create();
 };
 
+interface ThemeContextInterface {
+    theme: Theme;
+    setTheme: (theme: "Fall" | "Winter" | "Summer") => void;
+}
+
+const ThemeContext = React.createContext<ThemeContextInterface>({
+    theme: LightTheme,
+    setTheme: (theme: "Fall" | "Winter" | "Summer") => {},
+});
+
+export const useTheme = () => {
+    if (React.useContext(ThemeContext) === undefined) {
+        throw new Error("useTheme must be used within a ThemeProvider");
+    }
+
+    return React.useContext(ThemeContext);
+};
+
+export const ThemeProvider = observer(
+    (props: { children: React.ReactNode }) => {
+        const [theme, setTheme] = React.useState<Theme>(LightTheme);
+
+        const setThemeFromTerm = (term: string) => {
+            if (term.includes("Fall")) {
+                setTheme(LightTheme);
+            } else if (term.includes("Winter")) {
+                setTheme(LightTheme);
+            } else if (term.includes("Summer")) {
+                setTheme(LightTheme);
+            }
+        };
+
+        return (
+            <ThemeContext.Provider
+                value={{ theme, setTheme: setThemeFromTerm }}
+            >
+                {props.children}
+            </ThemeContext.Provider>
+        );
+    }
+);
+
 export const Background = () => {
     const [css, _$theme] = useStyletron();
 
@@ -134,61 +176,6 @@ export const Background = () => {
     );
 };
 
-export const ScreenWidthProtector = (props: {
-    children: React.ReactNode;
-    minWidth: number;
-}) => {
-    // if the screen is too narrow, show a modal that says "this app is not optimized for mobile"
-    const [css, _$theme] = useStyletron();
-    const [isOpen, setIsOpen] = React.useState(false);
-    // useEffect(() => {
-    //     if (window.innerWidth < props.minWidth) {
-    //         setIsOpen(true);
-    //     }
-    // }, [props.minWidth]);
-
-    return (
-        <div>
-            <Modal
-                overrides={{
-                    Root: {
-                        style: {
-                            zIndex: 1000,
-                        },
-                    },
-                }}
-                isOpen={isOpen}
-                onClose={() => setIsOpen(false)}
-            >
-                <div
-                    className={css({
-                        width: "100%",
-                        height: "100%",
-                        display: "flex",
-                        justifyContent: "center",
-                        alignItems: "center",
-                        flexDirection: "column",
-                    })}
-                >
-                    <Row>
-                        <h3
-                            className={css({
-                                textAlign: "center",
-                            })}
-                        >
-                            This app is not optimized for mobile.
-                        </h3>
-                    </Row>
-                    <Row>
-                        <h4> Try it on your favorite desktop browser!</h4>
-                    </Row>
-                </div>
-            </Modal>
-            {props.children}
-        </div>
-    );
-};
-
 ReactDOM.createRoot(document.getElementById("root")!).render(
     <React.StrictMode>
         <StyletronProvider value={engine}>
@@ -207,10 +194,8 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
                                 overflow: "hidden",
                             }}
                         >
-                            <ScreenWidthProtector minWidth={1000}>
-                                <App />
-                                <Background />
-                            </ScreenWidthProtector>
+                            <App />
+                            <Background />
                         </div>
                     </ToasterContainer>
                 </AppManagerProvider>
