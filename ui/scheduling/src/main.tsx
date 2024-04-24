@@ -8,8 +8,6 @@ import { Instance, onSnapshot } from "mobx-state-tree";
 import { AppManager } from "./api/AppManager.ts";
 import { observer } from "mobx-react-lite";
 import { ToasterContainer } from "baseui/toast/toaster";
-import Modal from "baseui/modal/modal";
-import { Row } from "./components/util.tsx";
 
 const engine = new Styletron();
 console.log(
@@ -97,48 +95,6 @@ const loadOrCreateAppManager = () => {
     }
     return AppManager.create();
 };
-
-interface ThemeContextInterface {
-    theme: Theme;
-    setTheme: (theme: "Fall" | "Winter" | "Summer") => void;
-}
-
-const ThemeContext = React.createContext<ThemeContextInterface>({
-    theme: LightTheme,
-    setTheme: (theme: "Fall" | "Winter" | "Summer") => {},
-});
-
-export const useTheme = () => {
-    if (React.useContext(ThemeContext) === undefined) {
-        throw new Error("useTheme must be used within a ThemeProvider");
-    }
-
-    return React.useContext(ThemeContext);
-};
-
-export const ThemeProvider = observer(
-    (props: { children: React.ReactNode }) => {
-        const [theme, setTheme] = React.useState<Theme>(LightTheme);
-
-        const setThemeFromTerm = (term: string) => {
-            if (term.includes("Fall")) {
-                setTheme(LightTheme);
-            } else if (term.includes("Winter")) {
-                setTheme(LightTheme);
-            } else if (term.includes("Summer")) {
-                setTheme(LightTheme);
-            }
-        };
-
-        return (
-            <ThemeContext.Provider
-                value={{ theme, setTheme: setThemeFromTerm }}
-            >
-                {props.children}
-            </ThemeContext.Provider>
-        );
-    }
-);
 
 export const Background = () => {
     const [css, _$theme] = useStyletron();
