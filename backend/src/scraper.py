@@ -47,7 +47,11 @@ class CourseScraper:
         print("initialized scraper")
 
     def get_course_data(self, course_url: str) -> CourseDetails:
-        html = requests.get(course_url, timeout=5).text
+
+        self.driver.get(course_url)
+
+        html = self.driver.page_source
+
         soup = BeautifulSoup(html, "html.parser")
 
         def find_next_or_none(search_term: str):
@@ -145,14 +149,18 @@ class CourseScraper:
     def search_by_subject(self, subject: str, term: str) -> [CourseDetails]:
         self.driver.get(URL)
 
+        self.driver.implicitly_wait(400)
+
         self.select_term(term)
 
         self.driver.find_element(
             By.XPATH, "//input[@value='Proceed to Search']"
         ).click()
 
-        subject_option = WebDriverWait(self.driver, 10).until(
-            EC.element_to_be_clickable((By.XPATH, f"//option[@value='{subject}']"))
+        print(f"Searching for {subject} in term {term}")
+
+        subject_option = self.driver.find_element(
+            By.XPATH, f"//option[@value='{subject}']"
         )
 
         # scroll inside sel_subj till subject_option is visible
@@ -205,8 +213,11 @@ class CourseScraper:
 
         return courses
 
-    def get_subjects(self):
+    def get_subjects(self, term=None):
         self.driver.get(URL)
+
+        if term:
+            self.select_term(term)
 
         self.driver.find_element(
             By.XPATH, "//input[@value='Proceed to Search']"

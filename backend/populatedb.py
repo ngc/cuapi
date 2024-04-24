@@ -15,7 +15,7 @@ def add_course(course: CourseDetails):
         response = requests.post(
             f"{URL}/add-course",
             json={
-                "course_details": course.__dict__(),
+                "course_details": course.to_dict(),
                 "worker_key": os.environ.get("WORKER_KEY"),
             },
             timeout=5,
@@ -44,7 +44,14 @@ def populate_db():
     subjects = scraper.get_subjects()
     futures = []
 
+    DEBUG = True
+
+    if DEBUG:
+        terms = terms[:1]
+        subjects = subjects[:1]
+
     with ThreadPoolExecutor(max_workers=20) as executor:
+
         for term in terms:
             for subject in subjects:
                 print(f"Scraping {subject} for term {term}")
@@ -69,14 +76,13 @@ Uses a connection to a local postgresql database to populate the database with c
 def populate_db_locally():
     scraper = CourseScraper()
     terms = scraper.get_terms()
-    subjects = scraper.get_subjects()
 
     db_connection = DatabaseConnection()
     futures = []
 
     with ThreadPoolExecutor(max_workers=20) as executor:
         for term in terms:
-            for subject in subjects:
+            for subject in scraper.get_subjects(term):
                 print(f"Scraping {subject} for term {term}")
                 futures.append(executor.submit(scrape_courses, term, subject))
 
@@ -87,6 +93,8 @@ def populate_db_locally():
         for course in courses:
             print(f"Adding {course.subject_code} to the database")
             db_connection.insert_course(course)
+
+    db_connection.build_all_searchable_courses()
 
     return True
 

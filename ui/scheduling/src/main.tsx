@@ -3,7 +3,7 @@ import ReactDOM from "react-dom/client";
 import App from "./components/App.tsx";
 import { Client as Styletron } from "styletron-engine-monolithic";
 import { Provider as StyletronProvider } from "styletron-react";
-import { LightTheme, BaseProvider, useStyletron, Theme } from "baseui";
+import { LightTheme, BaseProvider, useStyletron } from "baseui";
 import { Instance, onSnapshot } from "mobx-state-tree";
 import { AppManager } from "./api/AppManager.ts";
 import { observer } from "mobx-react-lite";

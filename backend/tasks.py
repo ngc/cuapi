@@ -36,7 +36,7 @@ def add_course(course: CourseDetails):
     response = requests.post(
         f"{URL}/add-course",
         json={
-            "course_details": course.__dict__(),
+            "course_details": course.to_dict(),
             "worker_key": os.environ.get("WORKER_KEY"),
         },
         timeout=5,
@@ -52,7 +52,7 @@ def get_courses_by_subject(self, subject, term):
         print(f"Adding {course.subject_code} to the database")
         add_course(course)
 
-    return True
+    return courses
 
 
 @app.task(bind=True)
