@@ -5,7 +5,7 @@ import "./Calendar.css";
 import { Button } from "baseui/button";
 import { exportEventsToICS } from "../api/icsGenerator";
 import { observer } from "mobx-react-lite";
-import { useAppManager } from "../main";
+import { IS_MOBILE, useAppManager } from "../main";
 import { Column, Row, listToCommaString } from "./util";
 import { ChevronLeft, ChevronRight } from "baseui/icon";
 import { Modal } from "baseui/modal";
@@ -73,6 +73,7 @@ export interface CalendarEvent {
 export interface CalendarProps {
     $style?: StyleObject;
     mobile?: boolean;
+    openCourseSelection?: () => void;
 }
 
 const shortDayToLong = (short: string) => {
@@ -127,35 +128,78 @@ const CalendarGrid = observer((props: { mobile?: boolean }) => {
         }
     }
 
+    const row = css({
+        margin: 0,
+        padding: 0,
+        borderRadius: "10px",
+    });
+
+    const tdClass = css({
+        margin: 0,
+        padding: 0,
+        border: "1px solid black",
+        textAlign: "center",
+        verticalAlign: "middle",
+        position: "relative",
+    });
+
     return (
-        <table className="calendar-grid">
-            <tr className="header-row">
-                <td className="time-td" id="calendar-time-header"></td>
-                <td id="calendar-monday-header">Monday</td>
-                <td>Tuesday</td>
-                <td>Wednesday</td>
-                <td>Thursday</td>
-                <td>Friday</td>
+        <table
+            className={css({
+                width: "100%",
+                borderCollapse: "collapse",
+                borderSpacing: 0,
+                tableLayout: "fixed",
+                margin: 0,
+                height: "100%",
+                padding: 0,
+                backgroundColor: "rgba(255, 255, 255, 0.4)",
+                boxShadow: "0 4px 8px 0 rgba(0, 0, 0, 0.2)",
+                borderRadius: "10px",
+            })}
+        >
+            <tr
+                className={`${row} ${css({
+                    fontFamily:
+                        "'Lucida Grande', 'Lucida Sans Unicode', 'Lucida Sans', Geneva, Verdana, sans-serif",
+
+                    ...(IS_MOBILE ? { fontSize: "0.90em" } : {}),
+                })}`}
+            >
+                <td
+                    className={tdClass + " " + css({ width: "5%" }).toString()}
+                    id="calendar-time-header"
+                ></td>
+                <td className={tdClass} id="calendar-monday-header">
+                    Monday
+                </td>
+                <td className={tdClass}>Tuesday</td>
+                <td className={tdClass}>Wednesday</td>
+                <td className={tdClass}>Thursday</td>
+                <td className={tdClass}>Friday</td>
             </tr>
             {hours.map((hour, index) => {
-                const cellClass = css({
-                    transition: "all 0.2s",
-                    ":hover": {
-                        backgroundColor: "rgba(0, 0, 0, 0.1)",
-                    },
+                const cellClass =
+                    css({
+                        transition: "all 0.2s",
+                        ":hover": {
+                            backgroundColor: "rgba(0, 0, 0, 0.1)",
+                        },
 
-                    ...(props.mobile
-                        ? {
-                              height: "4vh",
-                          }
-                        : {
-                              height: "40px",
-                          }),
-                });
+                        ...(props.mobile
+                            ? {
+                                  height: "4vh",
+                              }
+                            : {
+                                  height: "40px",
+                              }),
+                    }) +
+                    " " +
+                    tdClass;
 
                 return (
                     <tr>
-                        <td id={`hour-${index}`} className={"time-td"}>
+                        <td id={`hour-${index}`} className={tdClass}>
                             {hour}
                         </td>
                         <td className={cellClass}></td>
@@ -482,46 +526,59 @@ const EventDisplay = (props: {
                         display: "flex",
                         padding: 0,
                         margin: 0,
-                        fontSize: "calc(1.25em * 1.25vw + 1.25em)",
+                        fontSize: "calc(1.25em * 1.25vw)",
                         color: "white",
                     })}
                 >
-                    {props.event.title}
+                    {IS_MOBILE
+                        ? props.event.title.split(" ")[0] +
+                          " " +
+                          props.event.title.split(" ")[1]
+                        : props.event.title}
                 </div>
             </Row>
-            <span
-                className={css({
-                    display:
-                        props.height < 40 || props.mobile ? "none" : "flex",
-                })}
-            >
-                <Row
-                    $style={{
-                        gap: "5px",
-                        color: "white",
-                        fontSize: "calc(1.25em * 1.25vw)",
-                    }}
-                >
-                    <CalendarTime time={props.event.startTime} />
-                    {" - "}
-                    <CalendarTime time={props.event.endTime} />
-                </Row>
-            </span>
-            {props.event.instructor && (
-                <span
-                    className={css({
-                        display: props.height < 80 ? "none" : "flex",
-                        // fit in one line
-                        // as the length of the instructor's name increases, the font size decreases
-                        fontSize: `${
-                            1.25 -
-                            Math.min(0.4, props.event.instructor.length / 20)
-                        }em`,
-                        color: "white",
-                    })}
-                >
-                    <p>Instructor: {props.event.instructor}</p>
-                </span>
+            {!IS_MOBILE && (
+                <>
+                    <span
+                        className={css({
+                            display:
+                                props.height < 40 || props.mobile
+                                    ? "none"
+                                    : "flex",
+                        })}
+                    >
+                        <Row
+                            $style={{
+                                gap: "5px",
+                                color: "white",
+                                fontSize: "calc(1.25em * 1.25vw)",
+                            }}
+                        >
+                            <CalendarTime time={props.event.startTime} />
+                            {" - "}
+                            <CalendarTime time={props.event.endTime} />
+                        </Row>
+                    </span>
+                    {props.event.instructor && (
+                        <span
+                            className={css({
+                                display: props.height < 80 ? "none" : "flex",
+                                // fit in one line
+                                // as the length of the instructor's name increases, the font size decreases
+                                fontSize: `${
+                                    1.25 -
+                                    Math.min(
+                                        0.4,
+                                        props.event.instructor.length / 20
+                                    )
+                                }em`,
+                                color: "white",
+                            })}
+                        >
+                            <p>Instructor: {props.event.instructor}</p>
+                        </span>
+                    )}
+                </>
             )}
         </div>
     );
@@ -533,6 +590,7 @@ const CalendarButtonRow = (props: {
     onPrevPage: () => void;
     hasPrev: boolean;
     hasNext: boolean;
+    onAddCourse?: () => void;
     onCarletonCentral: () => void;
 }) => {
     const [css, _$theme] = useStyletron();
@@ -551,9 +609,15 @@ const CalendarButtonRow = (props: {
                 boxShadow: "0 4px 8px 0 rgba(0, 0, 0, 0.2)",
             })}
         >
-            <Button kind="tertiary" onClick={props.onExport}>
-                Export to Calendar
-            </Button>
+            {IS_MOBILE ? (
+                <Button kind="tertiary" onClick={props.onAddCourse}>
+                    Add Course
+                </Button>
+            ) : (
+                <Button kind="tertiary" onClick={props.onExport}>
+                    Export to Calendar
+                </Button>
+            )}
             <Row
                 $style={{
                     gap: "5px",
@@ -575,7 +639,7 @@ const CalendarButtonRow = (props: {
                 </Button>
             </Row>
             <Button onClick={props.onCarletonCentral} kind="tertiary">
-                Export to Carleton Central
+                Export {!IS_MOBILE && " to Carleton Central"}
             </Button>
         </div>
     );
@@ -671,6 +735,9 @@ export const Calendar = observer((props: CalendarProps) => {
                     </Row>
                     <Row>
                         <CalendarButtonRow
+                            onAddCourse={() => {
+                                props.openCourseSelection?.();
+                            }}
                             onExport={() => {
                                 const icsString = exportEventsToICS(
                                     appManager.toEvents

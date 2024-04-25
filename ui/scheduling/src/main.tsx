@@ -72,6 +72,8 @@ export const AppManagerProvider = observer(
     }
 );
 
+export const IS_MOBILE = window.innerWidth < 768;
+
 export const useAppManager = () => {
     if (React.useContext(AppManagerContext) === undefined) {
         throw new Error(

@@ -4,7 +4,7 @@ import { observer } from "mobx-react-lite";
 import { useState, useEffect } from "react";
 import { useStyletron } from "baseui";
 import { SearchableCourse } from "../api/api";
-import { useAppManager } from "../main";
+import { IS_MOBILE, useAppManager } from "../main";
 import { Column, Row } from "./util";
 import { Button } from "baseui/button";
 import { Instance } from "mobx-state-tree";
@@ -31,7 +31,7 @@ export const AddCourseButton = (props: { onClick: () => void }) => {
 };
 
 export const SelectedCourseItem = observer(
-    (props: { course: Instance<typeof RelatedOffering> }) => {
+    (props: { course: Instance<typeof RelatedOffering>; inline?: boolean }) => {
         const [css, _$theme] = useStyletron();
         const appManager = useAppManager();
 
@@ -49,6 +49,11 @@ export const SelectedCourseItem = observer(
                         backgroundColor: "rgba(255, 0, 0, 0.5)",
                         cursor: "pointer",
                     },
+                    ...(props.inline && {
+                        display: "flex",
+                        justifyContent: "center",
+                        padding: "7px",
+                    }),
                 })}
                 onClick={() => {
                     appManager.removeOffering(props.course);
@@ -67,23 +72,54 @@ export const CourseSelectionList = observer(
 
         if (props.row) {
             return (
-                <div
-                    className={css({
-                        // grid template columns
-                        display: "grid",
-                        gridTemplateColumns: "auto auto",
-                        gap: "10px",
-                        justifyContent: "center",
-                        alignItems: "center",
-                    })}
-                >
-                    {appManager.selectedOfferings.map((course) => {
-                        return <SelectedCourseItem course={course} />;
-                    })}
-                    {appManager.selectedOfferings.length === 0 && (
-                        <p>No courses selected</p>
+                <>
+                    {appManager.selectedOfferings.length > 0 && (
+                        <Column
+                            $style={{
+                                justifyContent: "center",
+                                alignContent: "center",
+                            }}
+                        >
+                            <a
+                                className={css({
+                                    fontSize: "1.15em",
+                                    fontWeight: "bold",
+                                    textAlign: "center",
+                                })}
+                            >
+                                Courses
+                            </a>
+                            <a
+                                className={css({
+                                    fontSize: "0.75em",
+                                    fontStyle: "italic",
+                                    color: "rgba(0, 0, 0, 0.5)",
+                                })}
+                            >
+                                Click to remove
+                            </a>
+                        </Column>
                     )}
-                </div>
+                    <div
+                        className={css({
+                            // grid template columns
+                            display: "grid",
+                            gridTemplateColumns: "auto auto",
+                            gap: "10px",
+                            justifyContent: "center",
+                            alignItems: "center",
+                        })}
+                    >
+                        {appManager.selectedOfferings.map((course) => {
+                            return (
+                                <SelectedCourseItem course={course} inline />
+                            );
+                        })}
+                        {appManager.selectedOfferings.length === 0 && (
+                            <p>No courses selected</p>
+                        )}
+                    </div>
+                </>
             );
         }
 
@@ -415,7 +451,9 @@ export const CourseSelectionModal = (props: {
                             ? {
                                   zIndex: 1000,
                               }
-                            : {}),
+                            : {
+                                  zIndex: 1000,
+                              }),
                         overflowY: "cutoff",
                     },
                 },
@@ -452,7 +490,6 @@ export const CourseSelectionModal = (props: {
                             justifyContent: "space-between",
                         }}
                     >
-                        <CourseSelectionList row onClickAddCourse={() => {}} />
                         <TermPicker />
                     </Row>
                 )}
@@ -487,11 +524,13 @@ export const CourseSelectionModal = (props: {
                             label="By CRN"
                             description="Example: 11213"
                         />
-                        <Segment
-                            artwork={() => "😡"}
-                            label="By Course Code"
-                            description="Example: MATH 1104 CT"
-                        />
+                        {!IS_MOBILE && (
+                            <Segment
+                                artwork={() => "😡"}
+                                label="By Course Code"
+                                description="Example: MATH 1104 CT"
+                            />
+                        )}
                     </SegmentedControl>
                 </Row>
 

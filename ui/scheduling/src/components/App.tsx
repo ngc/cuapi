@@ -200,21 +200,15 @@ export const App = observer(() => {
                     </Row>
                     <Row>
                         <Calendar
-                            $style={{
-                                // set the scale on x to 1.1 and the scale on y to 1.5
-                                transform: "scale(1)",
-                            }}
                             mobile={true}
                             key={appManager.currentScheduleIndex}
+                            openCourseSelection={() => setIsOpen(true)}
                         />
                     </Row>
-                    <Row>
-                        <AddCourseButton
-                            onClick={() => {
-                                setIsOpen(true);
-                            }}
-                        />
-                    </Row>
+                    <CourseSelectionList
+                        row={true}
+                        onClickAddCourse={() => {}}
+                    />
                 </Column>
             )}
         </>
