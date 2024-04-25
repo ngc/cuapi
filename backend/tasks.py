@@ -156,7 +156,7 @@ def on_all_scraping_complete(results):
     # Flatten the list of lists
     all_courses = [course for sublist in results for course in sublist]
     # Send to write_to_db task
-    write_to_db(all_courses)
+    write_to_db.apply_async(args=(all_courses,), queue="localwrite")
 
 
 @app.task
