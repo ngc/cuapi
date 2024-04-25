@@ -108,7 +108,7 @@ services:
       - .:/app
     networks:
       - cuapi
-    command: ["./wait-for-it.sh", "redis:6379", "--timeout=60", "--", "python3", "-m", "celery", "--app=tasks", "worker", "-Q", "localwrite", "--loglevel=info"]
+    command: ["./wait-for-it.sh", "redis:6379", "--timeout=60", "--", "python3", "-m", "celery", "--app=tasks", "worker", "-Q", "localwrite", "--loglevel=info", "--concurrency=1"]
     image: nathanngc/localworker:latest
 volumes:
   db-data:
