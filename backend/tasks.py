@@ -171,6 +171,10 @@ def write_subject_results_to_db(courses):
     for course in courses:
         db.insert_course(course)
 
+    db.build_searchable_courses(
+        courses[0].registration_term, courses[0].related_offering
+    )
+
 
 # To only be used in the write queue
 @app.task()

@@ -414,19 +414,6 @@ class DatabaseConnection:
             return False
 
     def build_searchable_courses(self, registration_term: str, related_offering: str):
-        # delete the searchable course if it already exists
-        with self.conn.cursor() as cur:
-            cur.execute(
-                """
-                DELETE FROM searchable_courses WHERE registration_term = %(registration_term)s AND related_offering = %(related_offering)s;
-                """,
-                {
-                    "registration_term": registration_term,
-                    "related_offering": related_offering,
-                },
-            )
-            self.conn.commit()
-
         # we need to get all course details from the courses table who have the same registration_term and related_offering
         course_details = []
         with self.conn.cursor() as cur:
@@ -462,6 +449,30 @@ class DatabaseConnection:
         sections_list = []
         for key in sections:
             sections_list.append({"section_key": key, **sections[key]})
+
+        # check if the searchable course already exists
+        with self.conn.cursor() as cur:
+            cur.execute(
+                """
+                SELECT * FROM searchable_courses WHERE registration_term = %(registration_term)s AND related_offering = %(related_offering)s;
+                """,
+                {
+                    "registration_term": registration_term,
+                    "related_offering": related_offering,
+                },
+            )
+            rows = cur.fetchall()
+            if len(rows) > 0:
+                cur.execute(
+                    """
+                    DELETE FROM searchable_courses WHERE registration_term = %(registration_term)s AND related_offering = %(related_offering)s;
+                    """,
+                    {
+                        "registration_term": registration_term,
+                        "related_offering": related_offering,
+                    },
+                )
+                self.conn.commit()
 
         with self.conn.cursor() as cur:
             cur.execute(
@@ -680,9 +691,9 @@ WHERE
             )
             self.conn.commit()
 
-            self.build_searchable_courses(
-                course.registration_term, course.related_offering
-            )
+            # self.build_searchable_courses(
+            #     course.registration_term, course.related_offering
+            # )
 
     def row_to_course_details(self, row):
         section_information = SectionInformation(
