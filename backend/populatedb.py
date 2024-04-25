@@ -44,12 +44,6 @@ def populate_db():
     subjects = scraper.get_subjects()
     futures = []
 
-    DEBUG = True
-
-    if DEBUG:
-        terms = terms[:1]
-        subjects = subjects[:1]
-
     with ThreadPoolExecutor(max_workers=20) as executor:
 
         for term in terms:

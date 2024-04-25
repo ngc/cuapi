@@ -15,4 +15,3 @@ RUN chmod +x wait-for-it.sh
 
 # Set environment variables
 ENV PYTHONPATH=/usr/src/app/src
-ENV IS_BEAT=true

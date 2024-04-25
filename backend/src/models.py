@@ -134,7 +134,13 @@ class CourseJSONEncoder(json.JSONEncoder):
         return json.JSONEncoder.default(self, obj)
 
 
+def course_details_from_JSON(json_string):
+    course_dict = json.loads(json_string)
+    return course_dict_to_course_details(course_dict)
+
+
 class CourseDetails:
+
     def __init__(
         self,
         registration_term: str,
@@ -437,6 +443,9 @@ class DatabaseConnection:
             for row in rows:
                 course_details.append(self.row_to_course_details(row))
 
+        if len(course_details) == 0:
+            return
+
         # this is how sections will be structured
         sections = {}
 
@@ -670,6 +679,10 @@ WHERE
                 course.to_shallow_dict(),
             )
             self.conn.commit()
+
+            self.build_searchable_courses(
+                course.registration_term, course.related_offering
+            )
 
     def row_to_course_details(self, row):
         section_information = SectionInformation(
