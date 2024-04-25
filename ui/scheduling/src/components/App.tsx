@@ -6,11 +6,7 @@ import { useAppManager } from "../main";
 import { observer } from "mobx-react-lite";
 import { Select } from "baseui/select";
 import { TERMS } from "../api/AppManager";
-import {
-    AddCourseButton,
-    CourseSelectionList,
-    CourseSelectionModal,
-} from "./CourseSelection";
+import { CourseSelectionList, CourseSelectionModal } from "./CourseSelection";
 import { Column, Row } from "./util";
 import Wordmark from "../Wordmark.svg";
 
