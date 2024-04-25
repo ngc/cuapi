@@ -392,26 +392,14 @@ class DatabaseConnection:
 
     def course_exists(self, course: CourseDetails) -> bool:
         with self.conn.cursor() as cur:
-            # search for the searchable course by related_offering and registration_term
             cur.execute(
                 """
-                SELECT * FROM searchable_courses WHERE related_offering = %(related_offering)s AND registration_term = %(registration_term)s;
+                SELECT * FROM courses WHERE registration_term = %(registration_term)s AND crn = %(CRN)s;
                 """,
                 course.to_dict(),
             )
             rows = cur.fetchall()
-            if len(rows) == 0:
-                return False
-            searchableCourse = self.row_to_searchable_course(rows[0])
-            for section in searchableCourse.sections:
-                for section_course in section["courses"]:
-                    if section_course["CRN"] == course.CRN:
-                        return True
-                for tutorial in section["tutorials"]:
-                    if tutorial["CRN"] == course.CRN:
-                        return True
-
-            return False
+            return len(rows) > 0
 
     def build_searchable_courses(self, registration_term: str, related_offering: str):
         # we need to get all course details from the courses table who have the same registration_term and related_offering
@@ -633,6 +621,7 @@ WHERE
     def insert_course(self, course: CourseDetails):
         # first check if the course already exists
         if self.course_exists(course):
+            self.update_course(course)
             return
 
         with self.conn.cursor() as cur:
