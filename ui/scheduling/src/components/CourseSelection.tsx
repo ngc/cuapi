@@ -12,6 +12,7 @@ import { AppManager, CourseDetails, RelatedOffering } from "../api/AppManager";
 import { SegmentedControl, Segment } from "baseui/segmented-control";
 import { TermPicker } from "./App";
 import { toaster } from "baseui/toast";
+import { getSubjectColor, hexToSplitRGB } from "./colorize";
 
 export const AddCourseButton = (props: { onClick: () => void }) => {
     return (
@@ -35,18 +36,22 @@ export const SelectedCourseItem = observer(
         const [css, _$theme] = useStyletron();
         const appManager = useAppManager();
 
+        const subject = props.course.offering_name.split(" ")[0];
+        const color = getSubjectColor(subject);
+        const [red, green, blue] = hexToSplitRGB(color);
+
         return (
             <div
                 className={css({
                     width: "100%",
-                    backgroundColor: "rgba(255, 0, 0, 0.25)",
-                    border: "1px dashed red",
+                    backgroundColor: `rgba(${red}, ${green}, ${blue}, 0.25)`,
+                    border: `1px dashed rgba(${red}, ${green}, ${blue}, 1)`,
                     padding: "5px",
                     borderRadius: "5px",
                     fontFamily: "monospace",
                     fontSize: "1.2em",
                     ":hover": {
-                        backgroundColor: "rgba(255, 0, 0, 0.5)",
+                        backgroundColor: `rgba(${red}, ${green}, ${blue}, 0.5)`,
                         cursor: "pointer",
                     },
                     ...(props.inline && {
