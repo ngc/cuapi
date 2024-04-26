@@ -378,21 +378,36 @@ export const AppManager = types
         },
     }))
     .actions((self) => ({
-        async fetchSearchableCourses(searchTerm: string, page: number) {
+        async fetchSearchableCourses(
+            searchTerm: string,
+            page: number,
+            signal: AbortSignal
+        ) {
             return await searchableCourseSearch(
                 convert_term(self.selectedTerm),
                 searchTerm,
-                page
+                page,
+                signal
             );
         },
-        async searchByCRN(crn: string, page: number) {
-            return await crnSearch(convert_term(self.selectedTerm), crn, page);
+        async searchByCRN(crn: string, page: number, signal: AbortSignal) {
+            return await crnSearch(
+                convert_term(self.selectedTerm),
+                crn,
+                page,
+                signal
+            );
         },
-        async searchByCourseCode(subject_code: string, page: number) {
+        async searchByCourseCode(
+            subject_code: string,
+            page: number,
+            signal: AbortSignal
+        ) {
             return await courseCodeSearch(
                 convert_term(self.selectedTerm),
                 subject_code,
-                page
+                page,
+                signal
             );
         },
     }))

@@ -94,10 +94,14 @@ api.add_resource(
 export async function searchableCourseSearch(
     term: string,
     searchTerm: string,
-    page: number
+    page: number,
+    signal?: AbortSignal
 ): Promise<SearchableCourse[]> {
     const response = await fetch(
-        `${API_URL}searchable-courses/${term}/${searchTerm}/${page}`
+        `${API_URL}searchable-courses/${term}/${searchTerm}/${page}`,
+        {
+            signal,
+        }
     );
     return response.json();
 }
@@ -105,19 +109,28 @@ export async function searchableCourseSearch(
 export async function crnSearch(
     term: string,
     crn: string,
-    page: number
+    page: number,
+    signal?: AbortSignal
 ): Promise<CourseDetails[]> {
-    const response = await fetch(`${API_URL}crn/${term}/${crn}/${page}`);
+    const response = await fetch(`${API_URL}crn/${term}/${crn}/${page}`, {
+        signal,
+    });
+
     return response.json();
 }
 
 export async function courseCodeSearch(
     term: string,
     course_code: string,
-    page: number
+    page: number,
+    signal?: AbortSignal
 ): Promise<CourseDetails[]> {
     const response = await fetch(
-        `${API_URL}course-code/${term}/${course_code}/${page}`
+        `${API_URL}offering/${term}/${course_code}/${page}`,
+        {
+            signal,
+        }
     );
+
     return response.json();
 }

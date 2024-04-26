@@ -8,7 +8,7 @@ import { IS_MOBILE, useAppManager } from "../main";
 import { Column, Row } from "./util";
 import { Button } from "baseui/button";
 import { Instance } from "mobx-state-tree";
-import { CourseDetails, RelatedOffering } from "../api/AppManager";
+import { AppManager, CourseDetails, RelatedOffering } from "../api/AppManager";
 import { SegmentedControl, Segment } from "baseui/segmented-control";
 import { TermPicker } from "./App";
 import { toaster } from "baseui/toast";
@@ -399,48 +399,83 @@ enum SearchType {
     COURSE_CODE = 2,
 }
 
+export const useFetchSearchResults = (
+    searchQuery: string,
+    activeTab:
+        | SearchType.SUBJECT_CODE
+        | SearchType.CRN
+        | SearchType.COURSE_CODE,
+    appManager?: Instance<typeof AppManager>
+) => {
+    const [searchResults, setSearchResults] = useState<
+        SearchableCourse[] | CourseDetails[]
+    >([]);
+
+    appManager = appManager ?? useAppManager();
+
+    useEffect(() => {
+        const fetchData = async (activeTab: number, searchQuery: string) => {
+            const controller = new AbortController();
+            const { signal } = controller;
+            let results = [] as SearchableCourse[] | CourseDetails[];
+
+            try {
+                switch (activeTab) {
+                    case SearchType.SUBJECT_CODE:
+                        results = await appManager.fetchSearchableCourses(
+                            searchQuery,
+                            1,
+                            signal
+                        );
+                        break;
+                    case SearchType.CRN:
+                        results = await appManager.searchByCRN(
+                            searchQuery,
+                            1,
+                            signal
+                        );
+                        break;
+                    case SearchType.COURSE_CODE:
+                        results = await appManager.searchByCourseCode(
+                            searchQuery,
+                            1,
+                            signal
+                        );
+                        break;
+                }
+
+                setSearchResults(results);
+            } catch (error: any) {
+                if (error.name !== "AbortError") {
+                    console.error("Fetch failed:", error);
+                }
+            }
+
+            return () => {
+                controller.abort(); // Clean up the controller when the component unmounts or dependencies change
+            };
+        };
+
+        fetchData(activeTab, searchQuery);
+    }, [searchQuery, activeTab, appManager]);
+
+    return searchResults;
+};
+
 export const CourseSelectionModal = (props: {
     isOpen: boolean;
     onClose: () => void;
     showCourses?: boolean;
 }) => {
-    const [searchResults, setSearchResults] = useState<
-        SearchableCourse[] | CourseDetails[]
-    >([]);
     const [searchQuery, setSearchQuery] = useState("");
     const appManager = useAppManager();
     const [activeTab, setActiveTab] = useState<number>(SearchType.SUBJECT_CODE);
 
-    useEffect(() => {
-        const fetchData = async (activeTab: number, searchQuery: string) => {
-            let results = [] as SearchableCourse[] | CourseDetails[];
-
-            switch (activeTab) {
-                case SearchType.SUBJECT_CODE:
-                    results = await appManager.fetchSearchableCourses(
-                        searchQuery,
-                        1
-                    );
-                    break;
-                case SearchType.CRN:
-                    results = await appManager.searchByCRN(searchQuery, 1);
-                    break;
-                case SearchType.COURSE_CODE:
-                    results = await appManager.searchByCourseCode(
-                        searchQuery,
-                        1
-                    );
-                    break;
-            }
-
-            setSearchResults(results);
-        };
-        fetchData(activeTab, searchQuery);
-
-        return () => {
-            setSearchResults([]);
-        };
-    }, [searchQuery, activeTab]);
+    const searchResults = useFetchSearchResults(
+        searchQuery,
+        activeTab,
+        appManager
+    );
 
     return (
         <Modal
