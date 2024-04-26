@@ -459,7 +459,7 @@ export const useFetchSearchResults = (
         fetchData(activeTab, searchQuery);
     }, [searchQuery, activeTab, appManager]);
 
-    return searchResults;
+    return [searchResults, () => setSearchResults([])] as const;
 };
 
 export const CourseSelectionModal = (props: {
@@ -471,7 +471,7 @@ export const CourseSelectionModal = (props: {
     const appManager = useAppManager();
     const [activeTab, setActiveTab] = useState<number>(SearchType.SUBJECT_CODE);
 
-    const searchResults = useFetchSearchResults(
+    const [searchResults, clearSearchResults] = useFetchSearchResults(
         searchQuery,
         activeTab,
         appManager
@@ -545,7 +545,7 @@ export const CourseSelectionModal = (props: {
                         }}
                         activeKey={activeTab}
                         onChange={({ activeKey }) => {
-                            setSearchResults([]);
+                            clearSearchResults();
                             setActiveTab(parseInt(activeKey as string));
                         }}
                     >

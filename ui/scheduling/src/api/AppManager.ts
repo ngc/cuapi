@@ -10,6 +10,7 @@ import {
 } from "./scheduling";
 import { toaster } from "baseui/toast";
 import { isOnlineOnly } from "./util";
+import { getSubjectColor } from "../components/colorize";
 
 export interface SectionInformation {
     section_type: string;
@@ -145,7 +146,7 @@ const courseDetailsToEvent = (course: CourseDetails): CalendarEvent[] => {
                     onClick: () => {},
                     onHover: () => {},
                     onLeave: () => {},
-                    color: "#FF0000",
+                    color: getSubjectColor(course.subject_code.split(" ")[0]),
                     course: course,
                     meeting: meeting,
                     instructor: parseInstructor(meeting.instructor),
