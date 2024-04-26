@@ -18,23 +18,20 @@ from kombu.serialization import register
 from kombu import Queue
 
 URL = "http://localhost:3969"
-load_dotenv()
 
-redis_username = os.environ.get("REDIS_USERNAME", "default")
-redis_password = os.environ.get("REDIS_PASSWORD")
-redis_host = os.environ.get("REDIS_HOST", "localhost")
-redis_port = os.environ.get("REDIS_PORT", "6379")
-redis_db = os.environ.get("REDIS_DB", "1")
 
-# if os.environ.get("IS_BEAT") != "true" and os.environ.get("LOCAL_WORKER") is None:
-#     redis_host = input("Enter the Redis host: ")
-#     isLocal = input("Is this running locally? (y/n): ")
-#     if isLocal == "n":
-#         URL = "https://cuapi.cuscheduling.com"
+def get_redis_url(db=1):
+    load_dotenv()
+    redis_username = os.environ.get("REDIS_USERNAME", "default")
+    redis_password = os.environ.get("REDIS_PASSWORD")
+    redis_host = os.environ.get("REDIS_HOST", "localhost")
+    redis_port = os.environ.get("REDIS_PORT", "6379")
 
-broker_url = (
-    f"redis://{redis_username}:{redis_password}@{redis_host}:{redis_port}/{redis_db}"
-)
+    url = f"redis://{redis_username}:{redis_password}@{redis_host}:{redis_port}/{db}"
+    return url
+
+
+broker_url = get_redis_url()
 
 app = Celery("tasks", broker=broker_url)
 app.conf.redbeat_redis_url = broker_url

@@ -416,7 +416,7 @@ export const useFetchSearchResults = (
         SearchableCourse[] | CourseDetails[]
     >([]);
 
-    appManager = appManager ?? useAppManager();
+    appManager = (appManager ?? useAppManager()) as Instance<typeof AppManager>;
 
     useEffect(() => {
         const fetchData = async (activeTab: number, searchQuery: string) => {
@@ -427,21 +427,21 @@ export const useFetchSearchResults = (
             try {
                 switch (activeTab) {
                     case SearchType.SUBJECT_CODE:
-                        results = await appManager.fetchSearchableCourses(
+                        results = await appManager!.fetchSearchableCourses(
                             searchQuery,
                             1,
                             signal
                         );
                         break;
                     case SearchType.CRN:
-                        results = await appManager.searchByCRN(
+                        results = await appManager!.searchByCRN(
                             searchQuery,
                             1,
                             signal
                         );
                         break;
                     case SearchType.COURSE_CODE:
-                        results = await appManager.searchByCourseCode(
+                        results = await appManager!.searchByCourseCode(
                             searchQuery,
                             1,
                             signal
