@@ -366,20 +366,21 @@ class DatabaseConnection:
             query_string = """
             SELECT *
             FROM searchable_courses
-            WHERE lower(registration_term) ILIKE '%{query}%'
-            OR lower(related_offering) ILIKE '%{query}%'
-            OR lower(long_title) ILIKE '%{query}%'
-            OR lower(description) ILIKE '%{query}%'
-            OR lower(registration_term) % lower('{query}')
-            OR lower(related_offering) % lower('{query}')
-            OR lower(long_title) % lower('{query}')
-            OR lower(description) % lower('{query}')
+            WHERE registration_term = '{term}'
+            AND (
+                lower(related_offering) ILIKE '%{query}%'
+                OR lower(long_title) ILIKE '%{query}%'
+                OR lower(description) ILIKE '%{query}%'
+                OR lower(related_offering) % lower('{query}')
+                OR lower(long_title) % lower('{query}')
+                OR lower(description) % lower('{query}')
+            )
             ORDER BY similarity(lower(related_offering), lower('{query}')) DESC
             LIMIT {per_page} OFFSET {per_page} * {page};
             """
 
             formatted_query = query_string.format(
-                query=query, per_page=per_page, page=page - 1
+                query=query, per_page=per_page, page=page - 1, term=term
             )
 
             cur.execute(formatted_query)
