@@ -13,6 +13,11 @@ import { SegmentedControl, Segment } from "baseui/segmented-control";
 import { TermPicker } from "./App";
 import { toaster } from "baseui/toast";
 import { getSubjectColor, hexToSplitRGB } from "./colorize";
+import { useHover } from "@uidotdev/usehooks";
+import { FaEye } from "react-icons/fa";
+import { BsEye } from "react-icons/bs";
+import { IoMdEye, IoMdEyeOff } from "react-icons/io";
+import React from "react";
 
 export const AddCourseButton = (props: { onClick: () => void }) => {
     return (
@@ -40,31 +45,79 @@ export const SelectedCourseItem = observer(
         const color = getSubjectColor(subject);
         const [red, green, blue] = hexToSplitRGB(color);
 
+        const [isHovered, setIsHovered] = React.useState(false);
+
+        const displayIcon =
+            (!props.course.isVisible || isHovered) &&
+            !props.course.isOnlineOnly;
+
         return (
             <div
+                onMouseEnter={() => setIsHovered(true)}
+                onMouseLeave={() => setIsHovered(false)}
+                onFocus={() => setIsHovered(true)}
+                onBlur={() => setIsHovered(false)}
                 className={css({
-                    width: "100%",
-                    backgroundColor: `rgba(${red}, ${green}, ${blue}, 0.25)`,
-                    border: `1px dashed rgba(${red}, ${green}, ${blue}, 1)`,
-                    padding: "5px",
-                    borderRadius: "5px",
-                    fontFamily: "monospace",
-                    fontSize: "1.2em",
-                    ":hover": {
-                        backgroundColor: `rgba(${red}, ${green}, ${blue}, 0.5)`,
-                        cursor: "pointer",
-                    },
-                    ...(props.inline && {
-                        display: "flex",
-                        justifyContent: "center",
-                        padding: "7px",
-                    }),
+                    width: "120%",
+                    justifyContent: "center",
+                    display: "flex",
+                    flexDirection: "row",
+                    gap: "5px",
+                    marginLeft: "-18px",
                 })}
-                onClick={() => {
-                    appManager.removeOffering(props.course);
-                }}
             >
-                {props.course.offering_name}
+                <a
+                    className={css({
+                        justifyContent: "center",
+                        alignItems: "center",
+                        display: "flex",
+                        visibility: displayIcon ? "visible" : "hidden",
+                        cursor: "pointer",
+                        ":hover": {
+                            color: "rgba(0, 0, 0, 0.75)",
+                        },
+                        transition: "opacity 0.1s",
+                    })}
+                    onClick={() => {
+                        setIsHovered(false);
+                        props.course.toggleVisibility();
+                    }}
+                >
+                    {props.course.isVisible ? <IoMdEye /> : <IoMdEyeOff />}
+                </a>
+
+                <div
+                    className={css({
+                        width: "100%",
+                        backgroundColor: `rgba(${red}, ${green}, ${blue}, 0.25)`,
+                        border: `1px dashed rgba(${red}, ${green}, ${blue}, 1)`,
+
+                        ...(!props.course.isVisible && {
+                            border: `1px solid rgba(${red}, ${green}, ${blue}, 0.145)`,
+                            backgroundColor: `rgba(${red}, ${green}, ${blue}, 0.145)`,
+                            color: `rgba(${0}, ${0}, ${0}, 0.3)`,
+                        }),
+
+                        padding: "5px",
+                        borderRadius: "5px",
+                        fontFamily: "monospace",
+                        fontSize: "1.2em",
+                        ":hover": {
+                            backgroundColor: `rgba(${red}, ${green}, ${blue}, 0.5)`,
+                            cursor: "pointer",
+                        },
+                        ...(props.inline && {
+                            display: "flex",
+                            justifyContent: "center",
+                            padding: "7px",
+                        }),
+                    })}
+                    onClick={() => {
+                        appManager.removeOffering(props.course);
+                    }}
+                >
+                    {props.course.offering_name}
+                </div>
             </div>
         );
     }
@@ -136,7 +189,6 @@ export const CourseSelectionList = observer(
                     textAlign: "center",
                     gap: "10px",
                     alignItems: "center",
-                    // glassmorphism
                     backgroundColor: "rgba(255, 255, 255, 0.5)",
                     backdropFilter: "blur(10px)",
                     borderRadius: "10px",

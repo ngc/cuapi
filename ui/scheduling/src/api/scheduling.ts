@@ -1,3 +1,4 @@
+import { nanoid } from "nanoid";
 import { SectionModel } from "./AppManager";
 import { CourseDetails } from "./api";
 import { memoize } from "lodash";
@@ -14,6 +15,29 @@ export type Schedule = {
 // For each chosen course, add all possible combinations of lectures and tutorials
 export type AvailableCourses = {
     [subject_code: string]: SectionModel[];
+};
+
+export const stringifySectionModel = (sectionModel: SectionModel): string => {
+    const tutorials = sectionModel.tutorials.map(
+        (tutorial) => tutorial.global_id
+    );
+    const courses = sectionModel.courses.map((course) => course.global_id);
+    tutorials.sort();
+    courses.sort();
+
+    return JSON.stringify({ tutorials, courses });
+};
+
+export const stringifyAvailableCourses = (
+    availableCourses: AvailableCourses
+): string => {
+    const stringified = {} as { [subject_code: string]: string[] };
+    for (let subject_code in availableCourses) {
+        stringified[subject_code] = availableCourses[subject_code].map(
+            stringifySectionModel
+        );
+    }
+    return JSON.stringify(stringified);
 };
 
 export const mutateSchedule = (
@@ -258,5 +282,13 @@ export const getBestSchedules = memoize(
         population.sort((a, b) => calculateDaysOff(b) - calculateDaysOff(a));
 
         return population.slice(0, returnSize);
-    }
+    },
+    (availableCourses, populationSize, maxGenerations, returnSize) =>
+        JSON.stringify([
+            stringifyAvailableCourses(availableCourses),
+            populationSize,
+            maxGenerations,
+            returnSize,
+        ]) // A bunch of JSON.stringifys + multiple sorts is still faster than running the algorithm again
+    // This works great for when we're hiding and unhiding courses and we quickly call getBestSchedules again
 );

@@ -135,7 +135,7 @@ export const App = observer(() => {
                             </Column>
                             <Column
                                 $style={{
-                                    flex: 8,
+                                    flex: 7,
                                     marginRight: "40px",
                                 }}
                             >

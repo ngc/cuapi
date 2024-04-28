@@ -9,8 +9,9 @@ import {
     getBestSchedules,
 } from "./scheduling";
 import { toaster } from "baseui/toast";
-import { isOnlineOnly } from "./util";
+import { hasNoDays, isOnlineOnly } from "./util";
 import { getSubjectColor } from "../components/colorize";
+import { $nonEmptyObject } from "mobx-state-tree/dist/internal";
 
 export interface SectionInformation {
     section_type: string;
@@ -161,6 +162,7 @@ export const RelatedOffering = types
     .model({
         offering_name: types.string,
         section_models: types.array(types.frozen<SectionModel>()),
+        isVisible: types.optional(types.boolean, true),
     })
     .views((self) => ({
         get allSectionModels(): SectionModel[] {
@@ -169,6 +171,26 @@ export const RelatedOffering = types
                 sectionModels.push(sectionModel);
             }
             return sectionModels;
+        },
+        get isOnlineOnly(): boolean {
+            for (const section of self.section_models) {
+                for (const tutorial of section.tutorials) {
+                    if (!hasNoDays(tutorial.meeting_details)) {
+                        return false;
+                    }
+                }
+                for (const course of section.courses) {
+                    if (!hasNoDays(course.meeting_details)) {
+                        return false;
+                    }
+                }
+            }
+            return true;
+        },
+    }))
+    .actions((self) => ({
+        toggleVisibility() {
+            self.isVisible = !self.isVisible;
         },
     }));
 
@@ -418,6 +440,8 @@ export const AppManager = types
                 get availableCourses(): AvailableCourses {
                     let availableCourses: AvailableCourses = {};
                     for (let offering of self.selectedOfferings) {
+                        if (!offering.isVisible) continue;
+
                         availableCourses[offering.offering_name] =
                             offering.allSectionModels;
                     }
@@ -480,7 +504,7 @@ export const AppManager = types
                     const selectedCourses = self.selectedOfferings;
                     let onlineOfferings: any = [];
                     for (let offering of selectedCourses) {
-                        if (isOnlineOnly(offering)) {
+                        if (offering.isOnlineOnly) {
                             onlineOfferings.push(offering);
                         }
                     }
@@ -491,7 +515,7 @@ export const AppManager = types
                     const selectedCourses = self.selectedOfferings;
                     let regularOfferings: any = [];
                     for (let offering of selectedCourses) {
-                        if (!isOnlineOnly(offering)) {
+                        if (offering.isOnlineOnly === false) {
                             regularOfferings.push(offering);
                         }
                     }
