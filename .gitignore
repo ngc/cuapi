@@ -10,3 +10,4 @@ jobs/
 node_modules
 docker-compose.yml
 ui/scheduling/dist
+.DS_Store
