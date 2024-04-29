@@ -1,4 +1,3 @@
-import { nanoid } from "nanoid";
 import { SectionModel } from "./AppManager";
 import { CourseDetails } from "./api";
 import { memoize } from "lodash";

@@ -9,9 +9,8 @@ import {
     getBestSchedules,
 } from "./scheduling";
 import { toaster } from "baseui/toast";
-import { hasNoDays, isOnlineOnly } from "./util";
+import { hasNoDays } from "./util";
 import { getSubjectColor } from "../components/colorize";
-import { $nonEmptyObject } from "mobx-state-tree/dist/internal";
 
 export interface SectionInformation {
     section_type: string;

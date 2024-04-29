@@ -1,5 +1,4 @@
-import { Instance } from "mobx-state-tree";
-import { MeetingDetails, RelatedOffering } from "./AppManager";
+import { MeetingDetails } from "./AppManager";
 
 export const hasNoDays = (meetingDetails: MeetingDetails[]) => {
     return (

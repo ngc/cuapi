@@ -13,9 +13,6 @@ import { SegmentedControl, Segment } from "baseui/segmented-control";
 import { TermPicker } from "./App";
 import { toaster } from "baseui/toast";
 import { getSubjectColor, hexToSplitRGB } from "./colorize";
-import { useHover } from "@uidotdev/usehooks";
-import { FaEye } from "react-icons/fa";
-import { BsEye } from "react-icons/bs";
 import { IoMdEye, IoMdEyeOff } from "react-icons/io";
 import React from "react";
 
