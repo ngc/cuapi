@@ -9,9 +9,9 @@ import {
     getBestSchedules,
 } from "./scheduling";
 import { toaster } from "baseui/toast";
-import { hasNoDays, isOnlineOnly } from "./util";
+import { hasNoDays } from "./util";
 import { getSubjectColor } from "../components/colorize";
-import { $nonEmptyObject } from "mobx-state-tree/dist/internal";
+import { getParentOfType } from "mobx-state-tree";
 
 export interface SectionInformation {
     section_type: string;
@@ -191,6 +191,8 @@ export const RelatedOffering = types
     .actions((self) => ({
         toggleVisibility() {
             self.isVisible = !self.isVisible;
+            const appManager = getParentOfType(self, AppManager);
+            appManager.resetScheduleIndex();
         },
     }));
 
@@ -537,6 +539,9 @@ export const AppManager = types
         previousSchedule() {
             if (self.currentScheduleIndex == 0) return;
             self.currentScheduleIndex--;
+        },
+        resetScheduleIndex() {
+            self.currentScheduleIndex = 0;
         },
     }))
     .views((self) => ({

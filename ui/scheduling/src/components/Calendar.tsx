@@ -472,6 +472,7 @@ const EventPositioner = (props: { event: CalendarEvent; mobile?: boolean }) => {
                         ),
                         transition: "all 0.2s",
                         pointerEvents: "all",
+                        animation: "fadeIn 0.4s",
                     })}
                 >
                     <div
