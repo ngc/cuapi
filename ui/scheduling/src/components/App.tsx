@@ -2,7 +2,7 @@ import { Suspense, useLayoutEffect, useState } from "react";
 import "./App.css";
 import { useStyletron } from "baseui";
 import { Calendar } from "./Calendar";
-import { useAppManager } from "../main";
+import { IS_MOBILE, useAppManager } from "../main";
 import { observer } from "mobx-react-lite";
 import { Select } from "baseui/select";
 import { TERMS } from "../api/AppManager";
@@ -64,28 +64,16 @@ export const App = observer(() => {
     const [css, _$theme] = useStyletron();
     const [isOpen, setIsOpen] = useState(false);
 
-    const [isMobile, setIsMobile] = useState(
-        window.innerWidth <= 768 || window.innerHeight <= 768
-    );
-
     const appManager = useAppManager();
-
-    useLayoutEffect(() => {
-        function updateSize() {
-            setIsMobile(window.innerWidth <= 768 || window.innerHeight <= 768);
-        }
-        window.addEventListener("resize", updateSize);
-        return () => window.removeEventListener("resize", updateSize);
-    }, []);
 
     return (
         <>
             <CourseSelectionModal
                 isOpen={isOpen}
                 onClose={() => setIsOpen(false)}
-                showCourses={isMobile}
+                showCourses={IS_MOBILE}
             />
-            {!isMobile ? (
+            {!IS_MOBILE ? (
                 <Column $style={{ height: "100vh", width: "100vw" }}>
                     <Row
                         $style={{
@@ -196,7 +184,6 @@ export const App = observer(() => {
                     </Row>
                     <Row>
                         <Calendar
-                            mobile={true}
                             key={appManager.currentScheduleIndex}
                             openCourseSelection={() => setIsOpen(true)}
                         />

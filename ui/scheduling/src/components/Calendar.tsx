@@ -3,6 +3,7 @@ import { useState, useLayoutEffect } from "react";
 import { CourseDetails, MeetingDetails } from "../api/api";
 import "./Calendar.css";
 import { Button } from "baseui/button";
+import { Button as CustomButton } from "./Button";
 import { exportEventsToICS } from "../api/icsGenerator";
 import { observer } from "mobx-react-lite";
 import { IS_MOBILE, useAppManager } from "../main";
@@ -11,6 +12,8 @@ import { ChevronLeft, ChevronRight } from "baseui/icon";
 import { Modal } from "baseui/modal";
 import { StyleObject } from "styletron-react";
 import { Popover } from "baseui/popover";
+import { CgCalendar, CgCamera, CgExport } from "react-icons/cg";
+import { BiCalendarPlus } from "react-icons/bi";
 
 /**
  * The CalendarTime interface is used to represent a time in the calendar.
@@ -72,7 +75,6 @@ export interface CalendarEvent {
 
 export interface CalendarProps {
     $style?: StyleObject;
-    mobile?: boolean;
     openCourseSelection?: () => void;
 }
 
@@ -97,7 +99,7 @@ const shortDayToLong = (short: string) => {
     }
 };
 
-const CalendarGrid = observer((props: { mobile?: boolean }) => {
+const CalendarGrid = observer(() => {
     /*
     Calendar grid will be a 5x13 grid that will be used to display the events.
     */
@@ -121,7 +123,7 @@ const CalendarGrid = observer((props: { mobile?: boolean }) => {
         "9 pm",
     ];
 
-    if (props.mobile) {
+    if (IS_MOBILE) {
         // remove pm and am
         for (let i = 0; i < hours.length; i++) {
             hours[i] = hours[i].replace(" am", "").replace(" pm", "");
@@ -181,12 +183,11 @@ const CalendarGrid = observer((props: { mobile?: boolean }) => {
             {hours.map((hour, index) => {
                 const cellClass =
                     css({
-                        transition: "all 0.2s",
                         ":hover": {
                             backgroundColor: "rgba(0, 0, 0, 0.1)",
                         },
 
-                        ...(props.mobile
+                        ...(IS_MOBILE
                             ? {
                                   height: "4vh",
                               }
@@ -361,7 +362,7 @@ const makeHexTransparent = (hex: string, opacity: number) => {
     return `rgba(${r}, ${g}, ${b}, ${opacity})`;
 };
 
-const EventPositioner = (props: { event: CalendarEvent; mobile?: boolean }) => {
+const EventPositioner = (props: { event: CalendarEvent }) => {
     // This div will be used to position the event on the grid
     // we use the start and end times to calculate the position of the event
     // firstly, the column will be the day of the week
@@ -451,10 +452,12 @@ const EventPositioner = (props: { event: CalendarEvent; mobile?: boolean }) => {
                     }}
                     className={css({
                         position: "absolute",
-                        top: `${layout.top}px`,
-                        left: `${layout.left}px`,
                         width: `${layout.width}px`,
                         height: `${layout.height}px`,
+                        top: 0,
+                        left: 0,
+                        transform: `translate(${layout.left}px, ${layout.top}px)`,
+
                         borderRadius: "12px",
                         // dashed inside border
                         border: "2px dashed black",
@@ -470,7 +473,7 @@ const EventPositioner = (props: { event: CalendarEvent; mobile?: boolean }) => {
                             props.event.color,
                             0.5
                         ),
-                        transition: "all 0.2s",
+                        transition: "transform 0.2s",
                         pointerEvents: "all",
                     })}
                 >
@@ -487,7 +490,6 @@ const EventPositioner = (props: { event: CalendarEvent; mobile?: boolean }) => {
                         <EventDisplay
                             event={props.event}
                             height={layout.height}
-                            mobile={props.mobile}
                         />
                     </div>
                 </div>
@@ -496,11 +498,7 @@ const EventPositioner = (props: { event: CalendarEvent; mobile?: boolean }) => {
     );
 };
 
-const EventDisplay = (props: {
-    event: CalendarEvent;
-    height: number;
-    mobile?: boolean;
-}) => {
+const EventDisplay = (props: { event: CalendarEvent; height: number }) => {
     const [css, _$theme] = useStyletron();
     // grid that has three rows or three columns depending on the container size
     return (
@@ -542,7 +540,7 @@ const EventDisplay = (props: {
                     <span
                         className={css({
                             display:
-                                props.height < 40 || props.mobile
+                                props.height < 40 || IS_MOBILE
                                     ? "none"
                                     : "flex",
                         })}
@@ -607,48 +605,45 @@ const CalendarButtonRow = (props: {
                 backdropFilter: "blur(10px)",
                 borderRadius: "10px",
                 boxShadow: "0 4px 8px 0 rgba(0, 0, 0, 0.2)",
+                alignItems: "center",
             })}
         >
             {IS_MOBILE ? (
-                <Button kind="tertiary" onClick={props.onAddCourse}>
+                <CustomButton onClick={props.onAddCourse}>
                     Add Course
-                </Button>
+                </CustomButton>
             ) : (
-                <Button kind="tertiary" onClick={props.onExport}>
-                    Export to Calendar
-                </Button>
+                <CustomButton onClick={props.onExport}>
+                    <BiCalendarPlus /> Export to Calendar
+                </CustomButton>
             )}
             <Row
                 $style={{
                     gap: "5px",
                 }}
             >
-                <Button
-                    kind="tertiary"
+                <CustomButton
                     disabled={!props.hasPrev}
                     onClick={props.onPrevPage}
                 >
                     <ChevronLeft size={25} />
-                </Button>
-                <Button
-                    kind="tertiary"
+                </CustomButton>
+                <CustomButton
                     disabled={!props.hasNext}
                     onClick={props.onNextPage}
                 >
                     <ChevronRight size={25} />
-                </Button>
+                </CustomButton>
             </Row>
-            <Button onClick={props.onCarletonCentral} kind="tertiary">
-                Export {!IS_MOBILE && " to Carleton Central"}
-            </Button>
+
+            <CustomButton onClick={props.onCarletonCentral}>
+                <CgExport /> Export {!IS_MOBILE && " to Carleton Central"}
+            </CustomButton>
         </div>
     );
 };
 
-const CalendarEventsOverlay = (props: {
-    events: CalendarEvent[];
-    mobile?: boolean;
-}) => {
+const CalendarEventsOverlay = (props: { events: CalendarEvent[] }) => {
     const [css, _$theme] = useStyletron();
 
     return (
@@ -666,7 +661,7 @@ const CalendarEventsOverlay = (props: {
             })}
         >
             {props.events.map((event) => {
-                return <EventPositioner event={event} mobile={props.mobile} />;
+                return <EventPositioner event={event} />;
             })}
         </div>
     );
@@ -726,10 +721,9 @@ export const Calendar = observer((props: CalendarProps) => {
                                 userSelect: "none",
                             })}
                         >
-                            <CalendarGrid mobile={props.mobile} />
+                            <CalendarGrid />
                             <CalendarEventsOverlay
                                 events={appManager.toEvents}
-                                mobile={props.mobile}
                             />
                         </div>
                     </Row>

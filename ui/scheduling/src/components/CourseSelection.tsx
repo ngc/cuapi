@@ -6,7 +6,7 @@ import { useStyletron } from "baseui";
 import { SearchableCourse } from "../api/api";
 import { IS_MOBILE, useAppManager } from "../main";
 import { Column, Row } from "./util";
-import { Button } from "baseui/button";
+
 import { Instance } from "mobx-state-tree";
 import { AppManager, CourseDetails, RelatedOffering } from "../api/AppManager";
 import { SegmentedControl, Segment } from "baseui/segmented-control";
@@ -15,20 +15,23 @@ import { toaster } from "baseui/toast";
 import { getSubjectColor, hexToSplitRGB } from "./colorize";
 import { IoMdEye, IoMdEyeOff } from "react-icons/io";
 import React from "react";
+import { BiPlus } from "react-icons/bi";
+import { Button } from "./Button";
 
 export const AddCourseButton = (props: { onClick: () => void }) => {
+    const [css, _$theme] = useStyletron();
+
     return (
         <Button
             onClick={props.onClick}
-            overrides={{
-                BaseButton: {
-                    style: {
-                        width: "100%",
-                    },
-                },
+            $style={{
+                width: "100%",
             }}
         >
-            Add Course
+            <Column>
+                <BiPlus />{" "}
+            </Column>
+            <Column>Add Course</Column>
         </Button>
     );
 };
@@ -60,61 +63,67 @@ export const SelectedCourseItem = observer(
                     display: "flex",
                     flexDirection: "row",
                     gap: "5px",
-                    marginLeft: "-18px",
+                    marginLeft: IS_MOBILE ? undefined : "-18px",
                 })}
             >
-                <a
-                    className={css({
-                        justifyContent: "center",
-                        alignItems: "center",
-                        display: "flex",
-                        visibility: displayIcon ? "visible" : "hidden",
-                        cursor: "pointer",
-                        ":hover": {
-                            color: "rgba(0, 0, 0, 0.75)",
-                        },
-                        transition: "opacity 0.1s",
-                    })}
-                    onClick={() => {
-                        setIsHovered(false);
-                        props.course.toggleVisibility();
+                <Row
+                    $style={{
+                        gap: "5px",
                     }}
                 >
-                    {props.course.isVisible ? <IoMdEye /> : <IoMdEyeOff />}
-                </a>
-
-                <div
-                    className={css({
-                        width: "100%",
-                        backgroundColor: `rgba(${red}, ${green}, ${blue}, 0.25)`,
-                        border: `1px dashed rgba(${red}, ${green}, ${blue}, 1)`,
-
-                        ...(!props.course.isVisible && {
-                            border: `1px solid rgba(${red}, ${green}, ${blue}, 0.145)`,
-                            backgroundColor: `rgba(${red}, ${green}, ${blue}, 0.145)`,
-                            color: `rgba(${0}, ${0}, ${0}, 0.3)`,
-                        }),
-
-                        padding: "5px",
-                        borderRadius: "5px",
-                        fontFamily: "monospace",
-                        fontSize: "1.2em",
-                        ":hover": {
-                            backgroundColor: `rgba(${red}, ${green}, ${blue}, 0.5)`,
-                            cursor: "pointer",
-                        },
-                        ...(props.inline && {
-                            display: "flex",
+                    <a
+                        className={css({
                             justifyContent: "center",
-                            padding: "7px",
-                        }),
-                    })}
-                    onClick={() => {
-                        appManager.removeOffering(props.course);
-                    }}
-                >
-                    {props.course.offering_name}
-                </div>
+                            alignItems: "center",
+                            display: "flex",
+                            visibility: displayIcon ? "visible" : "hidden",
+                            cursor: "pointer",
+                            ":hover": {
+                                color: "rgba(0, 0, 0, 0.75)",
+                            },
+                            transition: "opacity 0.1s",
+                        })}
+                        onClick={() => {
+                            setIsHovered(false);
+                            props.course.toggleVisibility();
+                        }}
+                    >
+                        {props.course.isVisible ? <IoMdEye /> : <IoMdEyeOff />}
+                    </a>
+
+                    <div
+                        className={css({
+                            width: "100%",
+                            backgroundColor: `rgba(${red}, ${green}, ${blue}, 0.25)`,
+                            border: `1px dashed rgba(${red}, ${green}, ${blue}, 1)`,
+
+                            ...(!props.course.isVisible && {
+                                border: `1px solid rgba(${red}, ${green}, ${blue}, 0.145)`,
+                                backgroundColor: `rgba(${red}, ${green}, ${blue}, 0.145)`,
+                                color: `rgba(${0}, ${0}, ${0}, 0.3)`,
+                            }),
+
+                            padding: "5px",
+                            borderRadius: "5px",
+                            fontFamily: "monospace",
+                            fontSize: "1.2em",
+                            ":hover": {
+                                backgroundColor: `rgba(${red}, ${green}, ${blue}, 0.5)`,
+                                cursor: "pointer",
+                            },
+                            ...(props.inline && {
+                                display: "flex",
+                                justifyContent: "center",
+                                padding: "7px",
+                            }),
+                        })}
+                        onClick={() => {
+                            appManager.removeOffering(props.course);
+                        }}
+                    >
+                        {props.course.offering_name}
+                    </div>
+                </Row>
             </div>
         );
     }
@@ -274,7 +283,11 @@ export const CourseSelectionList = observer(
                         <p>No courses selected</p>
                     )}
                 </Column>
-                <Row>
+                <Row
+                    $style={{
+                        width: "100%",
+                    }}
+                >
                     <AddCourseButton onClick={props.onClickAddCourse} />
                 </Row>
             </Column>
@@ -530,6 +543,11 @@ export const CourseSelectionModal = (props: {
         activeTab,
         appManager
     );
+
+    useEffect(() => {
+        clearSearchResults();
+        setSearchQuery("");
+    }, [appManager.selectedTerm]);
 
     return (
         <Modal
