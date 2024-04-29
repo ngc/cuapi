@@ -458,8 +458,7 @@ const EventPositioner = (props: { event: CalendarEvent }) => {
                         transform: `translate(${layout.left}px, ${layout.top}px)`,
 
                         borderRadius: "12px",
-                        // dashed inside border
-                        border: "2px dashed black",
+                        border: "0.09vw dashed black",
                         zIndex: 10,
                         overflow: "hidden",
                         padding: 0,
