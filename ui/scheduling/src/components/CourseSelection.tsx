@@ -19,8 +19,6 @@ import { BiPlus } from "react-icons/bi";
 import { Button } from "./Button";
 
 export const AddCourseButton = (props: { onClick: () => void }) => {
-    const [css, _$theme] = useStyletron();
-
     return (
         <Button
             onClick={props.onClick}

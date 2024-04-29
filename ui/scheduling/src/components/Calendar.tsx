@@ -2,7 +2,6 @@ import { useStyletron } from "baseui";
 import { useState, useLayoutEffect } from "react";
 import { CourseDetails, MeetingDetails } from "../api/api";
 import "./Calendar.css";
-import { Button } from "baseui/button";
 import { Button as CustomButton } from "./Button";
 import { exportEventsToICS } from "../api/icsGenerator";
 import { observer } from "mobx-react-lite";
@@ -12,7 +11,7 @@ import { ChevronLeft, ChevronRight } from "baseui/icon";
 import { Modal } from "baseui/modal";
 import { StyleObject } from "styletron-react";
 import { Popover } from "baseui/popover";
-import { CgCalendar, CgCamera, CgExport } from "react-icons/cg";
+import { CgExport } from "react-icons/cg";
 import { BiCalendarPlus } from "react-icons/bi";
 
 /**

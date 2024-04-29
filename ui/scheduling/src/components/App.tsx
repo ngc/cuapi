@@ -1,4 +1,4 @@
-import { Suspense, useLayoutEffect, useState } from "react";
+import { Suspense, useState } from "react";
 import "./App.css";
 import { useStyletron } from "baseui";
 import { Calendar } from "./Calendar";
