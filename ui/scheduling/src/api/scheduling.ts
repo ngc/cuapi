@@ -218,9 +218,9 @@ export const stringifySchedule = memoize((schedule: Schedule): string => {
     let globalIdList = [];
     for (let subject_code in schedule) {
         if (schedule?.[subject_code].course === undefined) continue;
-        globalIdList.push(schedule[subject_code].course.subject_code);
+        globalIdList.push(schedule[subject_code].course.CRN);
         if (schedule[subject_code].tutorial) {
-            globalIdList.push(schedule[subject_code].tutorial!.subject_code);
+            globalIdList.push(schedule[subject_code].tutorial!.CRN);
         }
     }
     return globalIdList.sort().join(",");
