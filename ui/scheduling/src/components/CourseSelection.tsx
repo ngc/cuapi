@@ -534,6 +534,13 @@ export const CourseSelectionModal = (props: {
         appManager
     );
 
+    useEffect(() => {
+        if (props.isOpen) {
+            setSearchQuery("");
+            clearSearchResults();
+        }
+    }, [appManager.selectedTerm]);
+
     return (
         <Modal
             overrides={{
