@@ -8,6 +8,9 @@ RUN chmod +x wait-for-it.sh
 COPY go.mod go.sum ./
 RUN go mod download
 
+COPY scripts/wait-for-it.sh .
+RUN chmod +x wait-for-it.sh
+
 COPY scraper/go.mod scraper/go.sum ./scraper/
 COPY scraper/src ./scraper/src
 

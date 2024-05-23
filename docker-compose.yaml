@@ -53,7 +53,7 @@ services:
       - cuapi
     depends_on:
       - "backend"
-    command: ["./wait-for-it.sh", "backend:3969", "--", "echo", "0 */6 * * * $PWD/scraper", "|", "crontab", "-"]
+    command: ["echo", "0 */6 * * * $PWD/scraper", "|", "crontab", "-"]
   frontend:
     build:
       context: .
