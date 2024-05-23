@@ -14,23 +14,23 @@ services:
     depends_on:
       - "frontend"
       - "backend"
-      - "celery"
     networks:
       - cuapi
     env_file:
       - .env
-    image: nathanngc/nginx:latest
+    image: ngcnathan/nginx:latest
   backend:
     build:
       context: .
       dockerfile: ./docker/Dockerfile.backend
-    image: nathanngc/backend:latest
+    image: ngcnathan/backend:latest
     env_file:
       - .env
     environment:
       POSTGRES_HOST: "db"
       POSTGRES_DB: "cuapi"
       REDIS_HOST: "redis"
+      NEO4J_URI: "bolt://neo4j:7687"
     ports:
       - "3969:3969"
     networks:
@@ -39,7 +39,21 @@ services:
       - .:/app
     depends_on:
       - "db"
-    command: ["./wait-for-it.sh", "db:5432", "--timeout=60", "--", "gunicorn", "--bind", "0.0.0.0:3969", "api:app"]
+    command: ["./wait-for-it.sh", "neo4j:7687", "--", "/backend"]
+  scrapercron:
+    build:
+      context: .
+      dockerfile: ./docker/Dockerfile.scraper
+    image: ngcnathan/scrapercron:latest
+    env_file:
+      - .env
+    environment:
+      BACKEND_URL: "backend:3969"
+    networks:
+      - cuapi
+    depends_on:
+      - "backend"
+    command: ["./wait-for-it.sh", "backend:3969", "--", "echo", "0 */6 * * * $PWD/scraper", "|", "crontab", "-"]
   frontend:
     build:
       context: .
@@ -50,20 +64,7 @@ services:
       - "3959:3959"
     networks:
       - cuapi
-    image: nathanngc/frontend:latest
-  db:
-    image: postgres:13
-    env_file:
-      - .env
-    environment:
-      POSTGRES_HOST: "db"
-      POSTGRES_DB: "cuapi"
-    ports:
-      - "5432:5432"
-    networks:
-      - cuapi
-    volumes:
-      - db-data:/var/lib/postgresql/data
+    image: ngcnathan/frontend:latest
   redis:
     image: redis/redis-stack:6.2.6-v7
     ports:
@@ -72,45 +73,26 @@ services:
       - .env
     networks:
       - cuapi
-  celery:
-    build:
-      context: .
-      dockerfile: ./docker/Dockerfile.celery
-    env_file:
-      - .env
+  db:
+    image: neo4j:latest
+    hostname: neo4j
+    container_name: neo4j
+    ports:
+      - "7474:7474" # HTTP
+      - "7687:7687" # Bolt
     environment:
-      IS_BEAT: "true"
-      REDIS_HOST: "redis"
-    depends_on:
-      - "redis"
-      - "backend"
+      NEO4J_AUTH: neo4j/testpassword
+      NEO4J_dbms_memory_heap_initial__size: 512M
+      NEO4J_dbms_memory_heap_max__size: 1G
     volumes:
-      - .:/app
+      - db-data:/var/lib/neo4j/data
+    ulimits:
+      nofile:
+        soft: 40000
+        hard: 40000
+    restart: unless-stopped
     networks:
       - cuapi
-    command: ["./wait-for-it.sh", "redis:6379", "--timeout=60", "--", "python3", "-m", "celery", "--app=tasks", "beat", "--loglevel=info"]
-    image: nathanngc/celery:latest
-  localworker:
-    build:
-      context: .
-      dockerfile: ./docker/Dockerfile.celery
-    env_file:
-      - .env
-    environment:
-      IS_BEAT: "false"
-      REDIS_HOST: "redis"
-      LOCAL_WORKER: "true"
-      POSTGRES_HOST: "db"
-      POSTGRES_DB: "cuapi"
-    depends_on:
-      - "redis"
-      - "backend"
-    volumes:
-      - .:/app
-    networks:
-      - cuapi
-    command: ["./wait-for-it.sh", "redis:6379", "--timeout=60", "--", "python3", "-m", "celery", "--app=tasks", "worker", "-Q", "localwrite", "--loglevel=info", "--concurrency=1"]
-    image: nathanngc/localworker:latest
 volumes:
   db-data:
   certbot-data:

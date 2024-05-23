@@ -1,0 +1,20 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: scraper-cronjob
+  namespace: cuapi 
+spec:
+  schedule: "0 */6 * * *"  # Every 6 hours
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+          - name: scraper
+            image: ngcnathan/scraper:latest
+            imagePullPolicy: Always
+            command: ["/scraper"]  # Command to run your scraper binary
+            env: 
+              - name: BACKEND_URL
+                value: "backend:3969"
+          restartPolicy: OnFailure

@@ -3,7 +3,6 @@ import { Modal } from "baseui/modal";
 import { observer } from "mobx-react-lite";
 import { useState, useEffect } from "react";
 import { useStyletron } from "baseui";
-import { SearchableCourse } from "../api/api";
 import { IS_MOBILE, useAppManager } from "../main";
 import { Column, Row } from "./util";
 
@@ -17,6 +16,14 @@ import { IoMdEye, IoMdEyeOff } from "react-icons/io";
 import React from "react";
 import { BiPlus } from "react-icons/bi";
 import { Button } from "./Button";
+import {
+    API,
+    CourseQueryResult,
+    QueryCoursesResponse,
+    convertSectionsToModels,
+    isEmptySection,
+    cleanupSections,
+} from "../api/API";
 
 export const AddCourseButton = (props: { onClick: () => void }) => {
     return (
@@ -297,7 +304,7 @@ interface DisplayType {
     long_title: string;
     description: string;
     related_offering: string;
-    section_count: number;
+    section_count?: number;
 }
 
 export const CourseResultDisplay = (props: {
@@ -361,11 +368,7 @@ export const CourseResultDisplay = (props: {
                                 padding: "0px",
                             })}
                         >
-                            {props.course.related_offering} |{" "}
-                            {props.course.section_count &&
-                                props.course.section_count +
-                                    " section" +
-                                    (props.course.section_count > 1 ? "s" : "")}
+                            {props.course.related_offering}
                         </p>
                     </Row>
                 </Column>
@@ -421,13 +424,12 @@ export const SingleCourseSearchResultItem = observer(
 );
 
 export const SearchableCourseResultItem = observer(
-    (props: { course: SearchableCourse; closeModal: () => void }) => {
+    (props: { course: CourseQueryResult; closeModal: () => void }) => {
         const appManager = useAppManager();
         const displayInfo = {
             long_title: props.course.long_title,
             description: props.course.description,
             related_offering: props.course.related_offering,
-            section_count: props.course.sections.length,
         };
 
         return (
@@ -447,9 +449,26 @@ export const SearchableCourseResultItem = observer(
                         return;
                     }
 
+                    const api = new API();
+
+                    const response = await api.getSectionsByCourseCode(
+                        props.course.course_code
+                    );
+
+                    const sectionModels = cleanupSections(
+                        convertSectionsToModels(response)
+                    );
+
+                    if (sectionModels.every(isEmptySection)) {
+                        toaster.negative(
+                            "All sections are closed for this course"
+                        );
+                        return;
+                    }
+
                     appManager.addOffering({
                         offering_name: props.course.related_offering,
-                        section_models: props.course.sections,
+                        section_models: sectionModels,
                     });
                 }}
                 course={displayInfo}
@@ -473,58 +492,26 @@ export const useFetchSearchResults = (
     appManager?: Instance<typeof AppManager>
 ) => {
     const [searchResults, setSearchResults] = useState<
-        SearchableCourse[] | CourseDetails[]
-    >([]);
+        QueryCoursesResponse | undefined
+    >();
+    const api = new API();
 
     appManager = (appManager ?? useAppManager()) as Instance<typeof AppManager>;
 
     useEffect(() => {
-        const fetchData = async (activeTab: number, searchQuery: string) => {
-            const controller = new AbortController();
-            const { signal } = controller;
-            let results = [] as SearchableCourse[] | CourseDetails[];
-
-            try {
-                switch (activeTab) {
-                    case SearchType.SUBJECT_CODE:
-                        results = await appManager!.fetchSearchableCourses(
-                            searchQuery,
-                            1,
-                            signal
-                        );
-                        break;
-                    case SearchType.CRN:
-                        results = await appManager!.searchByCRN(
-                            searchQuery,
-                            1,
-                            signal
-                        );
-                        break;
-                    case SearchType.COURSE_CODE:
-                        results = await appManager!.searchByCourseCode(
-                            searchQuery,
-                            1,
-                            signal
-                        );
-                        break;
+        const fetchData = async (searchQuery: string) => {
+            api.queryCourses(searchQuery, appManager!.convertedTerm()).then(
+                (response) => {
+                    setSearchResults(response);
                 }
-
-                setSearchResults(results);
-            } catch (error: any) {
-                if (error.name !== "AbortError") {
-                    console.error("Fetch failed:", error);
-                }
-            }
-
-            return () => {
-                controller.abort(); // Clean up the controller when the component unmounts or dependencies change
-            };
+            );
         };
+        console.log("$$$", searchResults);
 
-        fetchData(activeTab, searchQuery);
+        fetchData(searchQuery);
     }, [searchQuery, activeTab, appManager]);
 
-    return [searchResults, () => setSearchResults([])] as const;
+    return [searchResults, () => setSearchResults(undefined)] as const;
 };
 
 export const CourseSelectionModal = (props: {
@@ -546,6 +533,7 @@ export const CourseSelectionModal = (props: {
         clearSearchResults();
         setSearchQuery("");
     }, [appManager.selectedTerm]);
+    const [css, _$theme] = useStyletron();
 
     return (
         <Modal
@@ -628,12 +616,14 @@ export const CourseSelectionModal = (props: {
                             artwork={() => "🤓"}
                             label="By CRN"
                             description="Example: 11213"
+                            disabled
                         />
                         {!IS_MOBILE && (
                             <Segment
-                                artwork={() => "😡"}
+                                artwork={() => "😶‍🌫️"}
                                 label="By Course Code"
                                 description="Example: MATH 1104 CT"
+                                disabled
                             />
                         )}
                     </SegmentedControl>
@@ -644,6 +634,16 @@ export const CourseSelectionModal = (props: {
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.currentTarget.value)}
                 />
+                <a
+                    className={css({
+                        color: "rgba(0, 0, 0, 0.5)",
+                        fontSize: "0.75em",
+                        fontStyle: "italic",
+                    })}
+                >
+                    Example: "BIOL 2* OR COMP" shows all 2000 level Biology
+                    courses and all Computer Science courses
+                </a>
 
                 <Column
                     $style={{
@@ -655,8 +655,9 @@ export const CourseSelectionModal = (props: {
                             "linear-gradient(to bottom, black 0%, black calc(100% - 50px), transparent 100%)",
                     }}
                 >
-                    {activeTab === SearchType.SUBJECT_CODE &&
-                        (searchResults as SearchableCourse[]).map((course) => {
+                    {searchResults &&
+                        searchResults.courses &&
+                        searchResults.courses.map((course) => {
                             return (
                                 <Row
                                     key={course.related_offering}
@@ -666,42 +667,6 @@ export const CourseSelectionModal = (props: {
                                     }}
                                 >
                                     <SearchableCourseResultItem
-                                        course={course as SearchableCourse}
-                                        closeModal={props.onClose}
-                                    />
-                                </Row>
-                            );
-                        })}
-
-                    {activeTab === SearchType.CRN &&
-                        (searchResults as CourseDetails[]).map((course) => {
-                            return (
-                                <Row
-                                    key={course.CRN}
-                                    $style={{
-                                        width: "100%",
-                                        justifyContent: "center",
-                                    }}
-                                >
-                                    <SingleCourseSearchResultItem
-                                        course={course}
-                                        closeModal={props.onClose}
-                                    />
-                                </Row>
-                            );
-                        })}
-
-                    {activeTab === SearchType.COURSE_CODE &&
-                        (searchResults as CourseDetails[]).map((course) => {
-                            return (
-                                <Row
-                                    key={course.related_offering}
-                                    $style={{
-                                        width: "100%",
-                                        justifyContent: "center",
-                                    }}
-                                >
-                                    <SingleCourseSearchResultItem
                                         course={course}
                                         closeModal={props.onClose}
                                     />
