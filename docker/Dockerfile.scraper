@@ -8,7 +8,9 @@ RUN chmod +x wait-for-it.sh
 COPY go.mod go.sum ./
 RUN go mod download
 
-COPY backend ./
-RUN go build -o /backend
+COPY scraper/go.mod scraper/go.sum ./scraper/
+COPY scraper/src ./scraper/src
 
-EXPOSE 3969
+WORKDIR /usr/src/app/scraper/src
+
+RUN go build -o /scraper

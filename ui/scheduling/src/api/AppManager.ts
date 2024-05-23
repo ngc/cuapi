@@ -1,5 +1,4 @@
 import { Instance, SnapshotIn, getSnapshot, types } from "mobx-state-tree";
-import { crnSearch, searchableCourseSearch, courseCodeSearch } from "./api";
 
 import { CalendarEvent } from "../components/Calendar";
 import {
@@ -37,20 +36,13 @@ export interface CourseDetails {
     session_info: string;
     registration_status: string;
     section_information: SectionInformation;
-    year_in_program_restriction?: string; // Optional in TypeScript
-    level_restriction?: string; // Optional in TypeScript
-    degree_restriction?: string; // Optional in TypeScript
-    major_restriction?: string; // Optional in TypeScript
-    program_restrictions?: string; // Optional in TypeScript
-    department_restriction?: string; // Optional in TypeScript
-    faculty_restriction?: string; // Optional in TypeScript
     meeting_details: MeetingDetails[]; // Array of MeetingDetails
     related_offering?: string; // Optional in TypeScript
     global_id?: string; // Optional in TypeScript
 }
 
 export const TERMS = ["Fall", "Winter", "Summer"];
-export const convert_term = (term: string) => {
+export const convertTerm = (term: string) => {
     switch (term) {
         case "Fall":
             return "F";
@@ -107,6 +99,65 @@ export const stringToColor = (str: string): string => {
     return hexColor;
 };
 
+export type CalendarBestSchedules = CalendarEvent[][];
+
+export const isRegistrationClosed = (course: CourseDetails): boolean => {
+    return course.registration_status !== "Open";
+};
+
+export const toEvents = (selectedCourses: Schedule): CalendarEvent[] => {
+    let events: CalendarEvent[] = [];
+    const flattened = flattenSchedule(selectedCourses);
+
+    for (let course of flattened) {
+        events = events.concat(courseDetailsToEvent(course));
+    }
+    return events;
+};
+
+export const bestSchedules = (
+    availableCourses: AvailableCourses
+): Schedule[] => {
+    const schedules: Schedule[] = getBestSchedules(
+        availableCourses,
+        300,
+        300,
+        10
+    );
+
+    return schedules;
+};
+
+const removeDuplicatesFromCalendarSchedule = (
+    input: CalendarBestSchedules
+): CalendarBestSchedules => {
+    const output: CalendarBestSchedules = [];
+
+    const set = new Set<string>();
+    for (let schedule of input) {
+        const key = JSON.stringify(schedule);
+        if (!set.has(key)) {
+            set.add(key);
+            output.push(schedule);
+        }
+    }
+
+    return output;
+};
+
+export const generateCalendarBestSchedules = async (
+    availableCourses: AvailableCourses
+): Promise<CalendarBestSchedules> => {
+    const schedules = bestSchedules(availableCourses);
+    const calendarSchedules: CalendarBestSchedules = [];
+
+    for (let schedule of schedules) {
+        calendarSchedules.push(toEvents(schedule));
+    }
+
+    return removeDuplicatesFromCalendarSchedule(calendarSchedules);
+};
+
 export interface SectionModel {
     courses: CourseDetails[];
     tutorials: CourseDetails[];
@@ -117,7 +168,7 @@ const courseDetailsToEvent = (course: CourseDetails): CalendarEvent[] => {
     const days = ["Mon", "Tue", "Wed", "Thu", "Fri"];
     const events: CalendarEvent[] = [];
 
-    if (course === undefined) {
+    if (!course || !course.meeting_details) {
         return events;
     }
 
@@ -173,14 +224,19 @@ export const RelatedOffering = types
         },
         get isOnlineOnly(): boolean {
             for (const section of self.section_models) {
-                for (const tutorial of section.tutorials) {
-                    if (!hasNoDays(tutorial.meeting_details)) {
-                        return false;
+                if (section.tutorials) {
+                    for (const tutorial of section.tutorials) {
+                        if (!hasNoDays(tutorial.meeting_details)) {
+                            return false;
+                        }
                     }
                 }
-                for (const course of section.courses) {
-                    if (!hasNoDays(course.meeting_details)) {
-                        return false;
+
+                if (section.courses) {
+                    for (const course of section.courses) {
+                        if (!hasNoDays(course.meeting_details)) {
+                            return false;
+                        }
                     }
                 }
             }
@@ -220,6 +276,9 @@ export const AppManager = types
                 }
             }
             return false;
+        },
+        convertedTerm(): string {
+            return convertTerm(self.selectedTerm);
         },
     }))
     .actions((self) => ({
@@ -399,40 +458,6 @@ export const AppManager = types
             self.selectedOfferings.clear();
         },
     }))
-    .actions((self) => ({
-        async fetchSearchableCourses(
-            searchTerm: string,
-            page: number,
-            signal: AbortSignal
-        ) {
-            return await searchableCourseSearch(
-                convert_term(self.selectedTerm),
-                searchTerm,
-                page,
-                signal
-            );
-        },
-        async searchByCRN(crn: string, page: number, signal: AbortSignal) {
-            return await crnSearch(
-                convert_term(self.selectedTerm),
-                crn,
-                page,
-                signal
-            );
-        },
-        async searchByCourseCode(
-            subject_code: string,
-            page: number,
-            signal: AbortSignal
-        ) {
-            return await courseCodeSearch(
-                convert_term(self.selectedTerm),
-                subject_code,
-                page,
-                signal
-            );
-        },
-    }))
     .extend((self) => {
         return {
             views: {
@@ -452,53 +477,6 @@ export const AppManager = types
     .extend((self) => {
         return {
             views: {
-                get bestSchedules() {
-                    const schedules: Schedule[] = getBestSchedules(
-                        self.availableCourses,
-                        150,
-                        300,
-                        10
-                    );
-
-                    return schedules;
-                },
-            },
-        };
-    })
-    .extend((self) => {
-        return {
-            views: {
-                get selectedCourses() {
-                    const bestSchedules = self.bestSchedules;
-
-                    if (
-                        self.bestSchedules.length === 0 &&
-                        self.selectedOfferings.length !== 0
-                    ) {
-                        toaster.negative("No schedules found", {});
-                        return [];
-                    }
-
-                    return flattenSchedule(
-                        bestSchedules[self.currentScheduleIndex]
-                    );
-                },
-            },
-        };
-    })
-    .extend((self) => {
-        return {
-            views: {
-                get toEvents(): CalendarEvent[] {
-                    let events: CalendarEvent[] = [];
-                    const selectedCourses = self.selectedCourses;
-
-                    for (let course of selectedCourses) {
-                        events = events.concat(courseDetailsToEvent(course));
-                    }
-                    return events;
-                },
-
                 get selectedOnlineOfferings(): typeof self.selectedOfferings {
                     const selectedCourses = self.selectedOfferings;
                     let onlineOfferings: any = [];
@@ -527,24 +505,5 @@ export const AppManager = types
         setTerm(term: (typeof TERMS)[number]) {
             self.selectedTerm = term;
             self.clearCourses();
-        },
-        nextSchedule() {
-            if (self.currentScheduleIndex == self.bestSchedules.length - 1)
-                return;
-            self.currentScheduleIndex++;
-        },
-        previousSchedule() {
-            if (self.currentScheduleIndex == 0) return;
-            self.currentScheduleIndex--;
-        },
-    }))
-    .views((self) => ({
-        get hasPreviousSchedule() {
-            return self.currentScheduleIndex > 0;
-        },
-    }))
-    .views((self) => ({
-        get hasNextSchedule() {
-            return self.currentScheduleIndex < self.bestSchedules.length - 1;
         },
     }));

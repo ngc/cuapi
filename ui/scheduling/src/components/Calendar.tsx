@@ -1,6 +1,5 @@
 import { useStyletron } from "baseui";
-import { useState, useLayoutEffect } from "react";
-import { CourseDetails, MeetingDetails } from "../api/api";
+import { useState, useLayoutEffect, useEffect } from "react";
 import "./Calendar.css";
 import { Button as CustomButton } from "./Button";
 import { exportEventsToICS } from "../api/icsGenerator";
@@ -13,6 +12,13 @@ import { StyleObject } from "styletron-react";
 import { Popover } from "baseui/popover";
 import { CgExport } from "react-icons/cg";
 import { BiCalendarPlus } from "react-icons/bi";
+import {
+    CalendarBestSchedules,
+    CourseDetails,
+    MeetingDetails,
+    generateCalendarBestSchedules,
+} from "../api/AppManager";
+import { toaster } from "baseui/toast";
 
 /**
  * The CalendarTime interface is used to represent a time in the calendar.
@@ -214,7 +220,10 @@ const CalendarGrid = observer(() => {
     );
 });
 
-const CourseInfoPill = (props: { children: React.ReactNode }) => {
+const CourseInfoPill = (props: {
+    children: React.ReactNode;
+    $style?: StyleObject;
+}) => {
     const [css, _$theme] = useStyletron();
     return (
         <div
@@ -226,6 +235,7 @@ const CourseInfoPill = (props: { children: React.ReactNode }) => {
                 backgroundColor: "rgba(0, 0, 0, 0.1)",
                 borderRadius: "10px",
                 fontSize: "0.75em",
+                ...props.$style,
             })}
         >
             {props.children}
@@ -274,6 +284,28 @@ const MeetingDetailsDisplay = (props: { meeting: MeetingDetails }) => {
     );
 };
 
+export const OnlinePill = (props: { suitability?: string }) => {
+    if (!props.suitability) return null;
+
+    const notOnline = props.suitability.toLowerCase().includes("not");
+
+    const display = notOnline ? "In-Person Only" : "Online Allowed";
+
+    return (
+        <Column>
+            <CourseInfoPill
+                $style={{
+                    backgroundColor: notOnline
+                        ? "rgba(255, 0, 0, 0.5)"
+                        : "rgba(100, 255, 30, 0.5)",
+                }}
+            >
+                <a>{display}</a>
+            </CourseInfoPill>
+        </Column>
+    );
+};
+
 const CourseInfoDisplay = (props: { course: CourseDetails }) => {
     const [css, _$theme] = useStyletron();
     return (
@@ -312,6 +344,9 @@ const CourseInfoDisplay = (props: { course: CourseDetails }) => {
                         <a>CRN: {props.course.CRN}</a>
                     </CourseInfoPill>
                 </Column>
+                <OnlinePill
+                    suitability={props.course.section_information?.suitability}
+                />
             </Row>
             <Row
                 $style={{
@@ -664,6 +699,42 @@ const CalendarEventsOverlay = (props: { events: CalendarEvent[] }) => {
         </div>
     );
 };
+
+export const useGetBestSchedules = (resetPage: () => void) => {
+    const appManager = useAppManager();
+
+    // generateCalendarBestSchedules will generate the best schedules for the current selection
+    // this must be async so we can use suspense
+    const [schedules, setSchedules] = useState<CalendarBestSchedules | null>(
+        null
+    );
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        const generate = async () => {
+            const schedules = await generateCalendarBestSchedules(
+                appManager.availableCourses
+            );
+            return schedules;
+        };
+
+        setLoading(true);
+        generate().then((schedules) => {
+            if (schedules.length === 0) {
+                toaster.warning(
+                    "No schedules found for the current selection."
+                );
+            }
+
+            setSchedules(schedules);
+            setLoading(false);
+            resetPage();
+        });
+    }, [appManager.availableCourses]);
+
+    return [schedules, loading] as const;
+};
+
 /**
  * The Calendar component is a simple 5 day calendar that can display events.
  * It works by first creating a grid of 5 columns and 13 rows (8 am to 8 pm) and then it will overlay events on top of the grid.
@@ -676,6 +747,35 @@ export const Calendar = observer((props: CalendarProps) => {
     const appManager = useAppManager();
     const [tutorialModalContent, setTutorialModalContent] =
         useState<React.ReactNode | null>(null);
+
+    const [schedules, loading] = useGetBestSchedules(() => setCurrentPage(0));
+
+    const [currentPage, setCurrentPage] = useState(0);
+
+    console.log("$$$", schedules);
+
+    const nextPage = () => {
+        if (!schedules) return;
+        if (currentPage === schedules.length - 1) {
+            return;
+        }
+
+        setCurrentPage((currentPage) => currentPage + 1);
+    };
+
+    const prevPage = () => {
+        if (currentPage === 0) {
+            return;
+        }
+
+        setCurrentPage((currentPage) => currentPage - 1);
+    };
+
+    if (loading || !schedules) {
+        return <div>Loading...</div>;
+    }
+
+    const events = schedules[currentPage] ?? [];
 
     return (
         <>
@@ -720,9 +820,7 @@ export const Calendar = observer((props: CalendarProps) => {
                             })}
                         >
                             <CalendarGrid />
-                            <CalendarEventsOverlay
-                                events={appManager.toEvents}
-                            />
+                            <CalendarEventsOverlay events={events} />
                         </div>
                     </Row>
                     <Row>
@@ -731,9 +829,7 @@ export const Calendar = observer((props: CalendarProps) => {
                                 props.openCourseSelection?.();
                             }}
                             onExport={() => {
-                                const icsString = exportEventsToICS(
-                                    appManager.toEvents
-                                );
+                                const icsString = exportEventsToICS(events);
                                 const blob = new Blob([icsString], {
                                     type: "text/calendar",
                                 });
@@ -782,16 +878,16 @@ export const Calendar = observer((props: CalendarProps) => {
                                 setTutorialModalContent(tutorial);
                             }}
                             onNextPage={() => {
-                                appManager.nextSchedule();
+                                nextPage();
                             }}
                             onPrevPage={() => {
-                                appManager.previousSchedule();
+                                prevPage();
                             }}
-                            hasPrev={appManager.hasPreviousSchedule}
-                            hasNext={appManager.hasNextSchedule}
+                            hasPrev={currentPage > 0}
+                            hasNext={currentPage < schedules.length - 1}
                             onCarletonCentral={() => {
                                 const crnSet = new Set<string>();
-                                for (let event of appManager.toEvents) {
+                                for (let event of events) {
                                     crnSet.add(event.course.CRN);
                                 }
                                 const crns = Array.from(crnSet);

@@ -1,5 +1,5 @@
 import { SectionModel } from "./AppManager";
-import { CourseDetails } from "./api";
+import { CourseDetails } from "./AppManager";
 import { memoize } from "lodash";
 
 export interface CourseAndTutorial {
@@ -17,10 +17,10 @@ export type AvailableCourses = {
 };
 
 export const stringifySectionModel = (sectionModel: SectionModel): string => {
-    const tutorials = sectionModel.tutorials.map(
-        (tutorial) => tutorial.global_id
-    );
-    const courses = sectionModel.courses.map((course) => course.global_id);
+    const tutorials =
+        sectionModel?.tutorials?.map((tutorial) => tutorial.global_id) ?? [];
+    const courses =
+        sectionModel?.courses?.map((course) => course.global_id) ?? [];
     tutorials.sort();
     courses.sort();
 
@@ -114,76 +114,80 @@ export interface timestampedCourses {
     localEndHour: number;
 }
 
-export const convertToTimestamps = (
-    schedule: CourseDetails[]
-): timestampedCourses[] => {
-    // depending on the day we add 1440 * day to the start and end times
-    let timestamps: timestampedCourses[] = [];
-    for (const course of schedule) {
-        if (course === undefined) continue;
-        try {
-            const meetings = course.meeting_details;
-            if (meetings === undefined) continue;
-            for (const meeting of meetings) {
-                try {
-                    const days = meeting.days;
-                    const time = meeting.time;
-                    const start = time.split("-")[0];
-                    const end = time.split("-")[1];
+export const convertToTimestamps = memoize(
+    (schedule: CourseDetails[]): timestampedCourses[] => {
+        // depending on the day we add 1440 * day to the start and end times
+        let timestamps: timestampedCourses[] = [];
+        for (const course of schedule) {
+            if (course === undefined) continue;
+            try {
+                const meetings = course.meeting_details;
+                if (meetings === undefined) continue;
+                for (const meeting of meetings) {
+                    try {
+                        const days = meeting.days;
+                        const time = meeting.time;
+                        const start = time.split("-")[0];
+                        const end = time.split("-")[1];
 
-                    const startHour = parseInt(start.split(":")[0]);
-                    const endHour = parseInt(end.split(":")[0]);
+                        const startHour = parseInt(start.split(":")[0]);
+                        const endHour = parseInt(end.split(":")[0]);
 
-                    const startMinute =
-                        parseInt(start.split(":")[0]) * 60 +
-                        parseInt(start.split(":")[1]);
-                    const endMinute =
-                        parseInt(end.split(":")[0]) * 60 +
-                        parseInt(end.split(":")[1]);
+                        const startMinute =
+                            parseInt(start.split(":")[0]) * 60 +
+                            parseInt(start.split(":")[1]);
+                        const endMinute =
+                            parseInt(end.split(":")[0]) * 60 +
+                            parseInt(end.split(":")[1]);
 
-                    for (const day of days) {
-                        const dayIndex = WEEKDAYS.indexOf(day);
-                        timestamps.push({
-                            startMinute: startMinute + 1440 * dayIndex,
-                            endMinute: endMinute + 1440 * dayIndex,
-                            dayIndex: dayIndex,
-                            localStartMinute: startMinute,
-                            localEndMinute: endMinute,
-                            localStartHour: startHour,
-                            localEndHour: endHour,
-                        });
+                        for (const day of days) {
+                            const dayIndex = WEEKDAYS.indexOf(day);
+                            timestamps.push({
+                                startMinute: startMinute + 1440 * dayIndex,
+                                endMinute: endMinute + 1440 * dayIndex,
+                                dayIndex: dayIndex,
+                                localStartMinute: startMinute,
+                                localEndMinute: endMinute,
+                                localStartHour: startHour,
+                                localEndHour: endHour,
+                            });
+                        }
+                    } catch (e) {
+                        continue;
                     }
-                } catch (e) {
-                    continue;
                 }
+            } catch (e) {
+                continue;
             }
-        } catch (e) {
-            continue;
         }
+        return timestamps;
     }
-    return timestamps;
-};
+);
 
+/**
+ * Calculates the number of conflicts in a schedule.
+ * We do this by creating an array of minutes in a week and incrementing the count of each minute that has a conflict.
+ * Might seem bad, but there's usually not many courses in a schedule so we get a really nice speed boooost.
+ * @param schedule
+ * @returns
+ */
 export const calculateConflicts = (schedule: Schedule): number => {
-    // first we want to flatten the CourseAndTutorial objects into an array of CourseDetails
-    const flat = flattenSchedule(schedule);
-    // then we convert the CourseDetails into an array of timestampedCourses
-    const timestamps = convertToTimestamps(flat);
+    // Initialize an array to represent minutes of the week
+    const minutesInWeek = 7 * 24 * 60; // 7 days * 24 hours * 60 minutes
+    const conflictsAtMinute: number[] = new Array(minutesInWeek).fill(0);
+    let totalConflicts = 0;
 
-    // we sort the timestamps by start time
-    timestamps.sort((a, b) => a.startMinute - b.startMinute);
-
-    // we keep track of the current end time
-    let currentEnd = 0;
-    let conflicts = 0;
-    for (let timestamp of timestamps) {
-        if (timestamp.startMinute < currentEnd) {
-            conflicts++;
+    // Iterate over courses and update conflictsAtMinute
+    for (const { startMinute, endMinute } of convertToTimestamps(
+        flattenSchedule(schedule)
+    )) {
+        for (let minute = startMinute; minute < endMinute; minute++) {
+            conflictsAtMinute[minute]++;
+            totalConflicts += conflictsAtMinute[minute] > 1 ? 1 : 0;
         }
-        currentEnd = Math.max(currentEnd, timestamp.endMinute);
     }
 
-    return conflicts;
+    return totalConflicts;
 };
 
 export const calculateDaysOff = (schedule: Schedule): number => {
@@ -269,10 +273,6 @@ export const getBestSchedules = memoize(
                 population.push(
                     mutateSchedule(population[i], availableCourses)
                 );
-            }
-            population = purgeDuplicates(population);
-            for (let i = population.length; i < populationSize; i++) {
-                population.push(generateRandomSchedule(availableCourses));
             }
         }
         population = purgeDuplicates(purgeConflicts(population));
