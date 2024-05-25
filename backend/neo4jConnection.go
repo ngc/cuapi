@@ -58,10 +58,19 @@ func (nc *Neo4jConnection) RunCypherQuery(query string, params map[string]interf
 }
 
 // GetNeo4jConnection returns a Neo4jConnection
-func GetNeo4jConnection() *Neo4jConnection {
+func GetNeo4jConnection(attempts int) *Neo4jConnection {
+	if attempts >= 10 {
+		panic("could not get Neo4j connection after 10 attempts")
+	}
+
 	nc, ok := ctx.Value("neo4jConnection").(*Neo4jConnection)
 	if !ok {
 		panic("could not get Neo4j connection from context")
+	}
+
+	if nc == nil || nc.Driver == nil || nc.Session == nil {
+		initNeo4jConnection()
+		return GetNeo4jConnection(attempts + 1)
 	}
 
 	return nc
@@ -87,7 +96,7 @@ func initNeo4jConnection() {
 
 func InitCoursesIndex() error {
 	println("Creating courses full-text index")
-	nc := GetNeo4jConnection()
+	nc := GetNeo4jConnection(0)
 
 	createIndexQuery := `
     CREATE FULLTEXT INDEX coursesFullTextIndex FOR (c:Course)
@@ -148,7 +157,7 @@ type Course struct {
 
 // QueryCourses searches for courses in the Neo4j database using a full-text search
 func QueryCourses(searchTerm string, registrationTerm string) ([]Course, error) {
-	nc := GetNeo4jConnection()
+	nc := GetNeo4jConnection(0)
 
 	result, err := nc.RunCypherQuery(`
 		CALL db.index.fulltext.queryNodes("coursesFullTextIndex", $searchTerm)
@@ -190,7 +199,7 @@ func QueryCourses(searchTerm string, registrationTerm string) ([]Course, error) 
 // CreateCourseDetailsNode creates a CourseDetails node in the Neo4j database
 func CreateCourseDetailsNode(courseDetails CourseDetails) error {
 
-	nc := GetNeo4jConnection()
+	nc := GetNeo4jConnection(0)
 
 	// first check if the course details node already exists
 	result, err := nc.RunCypherQuery(`
@@ -278,7 +287,7 @@ func CreateCourseDetailsNode(courseDetails CourseDetails) error {
 // CreateCourseDetailsRelationships creates relationships for a CourseDetails node in the Neo4j database
 // and adds additional data to the Course node.
 func CreateCourseDetailsRelationships(courseDetails CourseDetails) error {
-	nc := GetNeo4jConnection()
+	nc := GetNeo4jConnection(0)
 
 	var relationshipType string
 	if isLecture(courseDetails.ScheduleType) {
@@ -331,7 +340,7 @@ func InsertCourseDetails(courseDetails CourseDetails) error {
 }
 
 func GetTutorialsBySectionCode(sectionCode string) ([]CourseDetails, error) {
-	nc := GetNeo4jConnection()
+	nc := GetNeo4jConnection(0)
 
 	session, err := nc.Driver.NewSession(neo4j.SessionConfig{AccessMode: neo4j.AccessModeWrite})
 	if err != nil {
@@ -384,7 +393,7 @@ func GetTutorialsBySectionCode(sectionCode string) ([]CourseDetails, error) {
 }
 
 func GetLecturesBySectionCode(sectionCode string) ([]CourseDetails, error) {
-	nc := GetNeo4jConnection()
+	nc := GetNeo4jConnection(0)
 
 	session, err := nc.Driver.NewSession(neo4j.SessionConfig{AccessMode: neo4j.AccessModeWrite})
 	if err != nil {
@@ -460,7 +469,7 @@ type SectionsByCourseCode struct {
 }
 
 func GetSectionsByCourseCode(registrationTerm string, relatedOffering string) ([]SectionsByCourseCode, error) {
-	nc := GetNeo4jConnection()
+	nc := GetNeo4jConnection(0)
 
 	session, err := nc.Driver.NewSession(neo4j.SessionConfig{AccessMode: neo4j.AccessModeWrite})
 	if err != nil {
@@ -518,7 +527,7 @@ func GetSectionsByCourseCode(registrationTerm string, relatedOffering string) ([
 }
 
 func GetByCourseCode(registrationTerm string, relatedOffering string) ([]CourseDetails, error) {
-	nc := GetNeo4jConnection()
+	nc := GetNeo4jConnection(0)
 
 	session, err := nc.Driver.NewSession(neo4j.SessionConfig{AccessMode: neo4j.AccessModeWrite})
 	if err != nil {
