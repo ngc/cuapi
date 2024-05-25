@@ -41,6 +41,11 @@ services:
       db:
         condition: service_healthy
     command: ["./wait-for-it.sh", "neo4j:7687", "--", "/backend"]
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3969/healthz"]
+      interval: 30s
+      timeout: 30s
+      retries: 10
   scrapercron:
     build:
       context: .
@@ -53,8 +58,8 @@ services:
     networks:
       - cuapi
     depends_on:
-      - "backend"
-    command: ["echo", "0 */6 * * * $PWD/scraper", "|", "crontab", "-"]
+      backend:
+        condition: service_healthy
   frontend:
     build:
       context: .
