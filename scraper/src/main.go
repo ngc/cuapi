@@ -359,12 +359,6 @@ func submitCourseDetails(course CourseDetails) error {
 	workerKey := os.Getenv("WORKER_KEY")
 
 	fullURL := fmt.Sprintf("http://%s/add-course-details", backendURL)
-	jsonData, err := json.Marshal(course)
-	if err != nil {
-		return fmt.Errorf("failed to marshal course details: %w", err)
-	}
-
-	fmt.Println(string(jsonData))
 
 	requestBody := postCourseDetailsRequest{
 		CourseDetails: course,
