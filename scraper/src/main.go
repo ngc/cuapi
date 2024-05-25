@@ -602,6 +602,7 @@ func main() {
 					defer func() { <-semaphore }() // Release semaphore when done
 					fmt.Printf("Getting course details for term %s, subject %s, CRN %s\n", termCode, subject, crn)
 					courseDetails, err := getCourseDetailsForCRN(termCode, crn)
+					time.Sleep(200 * time.Millisecond)
 					if err != nil {
 						panic(err)
 					}
@@ -611,30 +612,14 @@ func main() {
 		}
 	}
 
-	wg.Wait() // Wait for all goroutines to finish
-
-	// write allCourseDetails to a file in JSON format
-	// this file will be read by the backend
-
-	// file, err := os.Create("course_details.json")
-	// if err != nil {
-	// 	panic(err)
-	// }
-
-	// defer file.Close()
-
-	// encoder := json.NewEncoder(file)
-	// encoder.SetIndent("", "  ")
-	// err = encoder.Encode(allCourseDetails)
-	// if err != nil {
-	// 	panic(err)
-	// }
+	wg.Wait()
 
 	for _, course := range allCourseDetails {
 		err := submitCourseDetails(course)
 		if err != nil {
 			panic(err)
 		}
+		time.Sleep(200 * time.Millisecond)
 	}
 
 	endTime := time.Now()
