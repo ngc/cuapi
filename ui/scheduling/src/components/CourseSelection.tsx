@@ -23,7 +23,7 @@ import {
     convertSectionsToModels,
     isEmptySection,
     cleanupSections,
-} from "../api/API";
+} from "../api/api";
 
 export const AddCourseButton = (props: { onClick: () => void }) => {
     return (
@@ -501,7 +501,7 @@ export const useFetchSearchResults = (
     useEffect(() => {
         const fetchData = async (searchQuery: string) => {
             api.queryCourses(searchQuery, appManager!.convertedTerm()).then(
-                (response) => {
+                (response: any) => {
                     setSearchResults(response);
                 }
             );
@@ -657,7 +657,7 @@ export const CourseSelectionModal = (props: {
                 >
                     {searchResults &&
                         searchResults.courses &&
-                        searchResults.courses.map((course) => {
+                        searchResults.courses.map((course: any) => {
                             return (
                                 <Row
                                     key={course.related_offering}
