@@ -57,41 +57,18 @@ func (nc *Neo4jConnection) RunCypherQuery(query string, params map[string]interf
 	return result, nil
 }
 
-// GetNeo4jConnection returns a Neo4jConnection
+// return a new neo4j connection, dont
 func GetNeo4jConnection(attempts int) *Neo4jConnection {
-	if attempts >= 10 {
-		panic("could not get Neo4j connection after 10 attempts")
+	neo4jConnection, ok := NewNeo4jConnection()
+	if ok != nil {
+		if attempts < 3 {
+			attempts++
+			return GetNeo4jConnection(attempts)
+		}
+		log.Fatalf("could not create Neo4j connection: %v", ok)
 	}
 
-	nc, ok := ctx.Value("neo4jConnection").(*Neo4jConnection)
-	if !ok {
-		panic("could not get Neo4j connection from context")
-	}
-
-	if nc == nil || nc.Driver == nil || nc.Session == nil {
-		initNeo4jConnection()
-		return GetNeo4jConnection(attempts + 1)
-	}
-
-	return nc
-}
-
-// SetNeo4jConnection sets a Neo4jConnection in the context
-func SetNeo4jConnection(nc *Neo4jConnection) {
-	if ctx == nil {
-		ctx = context.Background()
-	}
-
-	ctx = context.WithValue(ctx, "neo4jConnection", nc)
-}
-
-func initNeo4jConnection() {
-	nc, err := NewNeo4jConnection()
-	if err != nil {
-		log.Fatalf("could not create Neo4j connection: %v", err)
-	}
-
-	SetNeo4jConnection(nc)
+	return neo4jConnection
 }
 
 func InitCoursesIndex() error {
@@ -145,6 +122,7 @@ func InitCoursesIndex() error {
 		return err
 	}
 
+	nc.Close()
 	return nil
 }
 
@@ -192,6 +170,8 @@ func QueryCourses(searchTerm string, registrationTerm string) ([]Course, error) 
 	if err = result.Err(); err != nil {
 		return nil, err
 	}
+
+	nc.Close()
 
 	return courses, nil
 }
@@ -281,6 +261,8 @@ func CreateCourseDetailsNode(courseDetails CourseDetails) error {
 		return err
 	}
 
+	nc.Close()
+
 	return nil
 }
 
@@ -320,6 +302,8 @@ func CreateCourseDetailsRelationships(courseDetails CourseDetails) error {
 	if err != nil {
 		return err
 	}
+
+	nc.Close()
 
 	return nil
 }
@@ -388,6 +372,8 @@ func GetTutorialsBySectionCode(sectionCode string) ([]CourseDetails, error) {
 	if err = result.Err(); err != nil {
 		return nil, fmt.Errorf("error in result iteration: %v", err)
 	}
+
+	nc.Close()
 
 	return tutorials, nil
 }
@@ -459,6 +445,7 @@ func GetLecturesBySectionCode(sectionCode string) ([]CourseDetails, error) {
 		return nil, fmt.Errorf("error in result iteration: %v", err)
 	}
 
+	nc.Close()
 	return lectures, nil
 }
 
@@ -523,6 +510,7 @@ func GetSectionsByCourseCode(registrationTerm string, relatedOffering string) ([
 		return nil, fmt.Errorf("error in result iteration: %v", err)
 	}
 
+	nc.Close()
 	return sections, nil
 }
 
@@ -578,5 +566,6 @@ func GetByCourseCode(registrationTerm string, relatedOffering string) ([]CourseD
 		return nil, fmt.Errorf("error in result iteration: %v", err)
 	}
 
+	nc.Close()
 	return courses, nil
 }

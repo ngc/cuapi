@@ -144,7 +144,6 @@ func main() {
 	router.GET("/get-sections-by-course-code/:term/:course_code", getSectionsByCourseCode)
 	router.GET("/query-courses/:query/:term", queryCourses)
 
-	initNeo4jConnection()
 	err = InitCoursesIndex()
 	if err != nil {
 		panic(err)
