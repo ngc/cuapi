@@ -38,7 +38,8 @@ services:
     volumes:
       - .:/app
     depends_on:
-      - "db"
+      db:
+        condition: service_healthy
     command: ["./wait-for-it.sh", "neo4j:7687", "--", "/backend"]
   scrapercron:
     build:
