@@ -410,7 +410,6 @@ func main() {
 		panic(err)
 	}
 
-	var allCourseDetails []CourseDetails
 	var wg sync.WaitGroup
 	semaphore := make(chan struct{}, threadCount)
 
@@ -430,26 +429,17 @@ func main() {
 					defer func() { <-semaphore }()
 					fmt.Printf("Getting course details for term %s, subject %s, CRN %s\n", termCode, subject, crn)
 					courseDetails, err := getCourseDetailsForCRN(termCode, crn)
-					time.Sleep(200 * time.Millisecond)
 					if err != nil {
 						fmt.Println(err)
 						return
 					}
-					allCourseDetails = append(allCourseDetails, courseDetails)
+					submitCourseDetails(courseDetails)
 				}(term.TermCode, subject, crn)
 			}
 		}
 	}
 
 	wg.Wait()
-
-	for _, course := range allCourseDetails {
-		err := submitCourseDetails(course)
-		if err != nil {
-			fmt.Println(err)
-		}
-		time.Sleep(200 * time.Millisecond)
-	}
 
 	endTime := time.Now()
 	fmt.Printf("Time taken: %v\n", endTime.Sub(startTime))
