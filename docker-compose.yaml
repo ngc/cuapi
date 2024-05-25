@@ -93,6 +93,11 @@ services:
     restart: unless-stopped
     networks:
       - cuapi
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:7474"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
 volumes:
   db-data:
   certbot-data:
