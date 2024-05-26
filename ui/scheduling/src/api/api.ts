@@ -51,6 +51,8 @@ export const maybeFlipCoursesAndTutorials = (
 };
 
 export const cleanupSections = (sections: SectionModel[]) => {
+    const DEMO_MODE = true;
+
     for (let i = 0; i < sections.length; i++) {
         const { courses, tutorials } = maybeFlipCoursesAndTutorials(
             sections[i].courses,
@@ -58,6 +60,11 @@ export const cleanupSections = (sections: SectionModel[]) => {
         );
         sections[i].courses = courses;
         sections[i].tutorials = tutorials;
+    }
+
+    // Demo mode: show all sections regardless of whether they are closed
+    if (DEMO_MODE) {
+        return sections;
     }
 
     return sections.filter(
