@@ -382,7 +382,7 @@ func submitCourseDetails(course CourseDetails) error {
 	return nil
 }
 
-var threadCount = 100
+var threadCount = 2
 
 func main() {
 	startTime := time.Now()
