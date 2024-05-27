@@ -726,6 +726,9 @@ export const useGetBestSchedules = (resetPage: () => void) => {
                 );
             }
 
+            // remove empty schedules
+            schedules = schedules.filter((schedule) => schedule.length > 0);
+
             setSchedules(schedules);
             setLoading(false);
             resetPage();
