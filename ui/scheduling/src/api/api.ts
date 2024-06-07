@@ -133,11 +133,7 @@ export const convertSectionsToModels = (
     sections: GetSectionsByCourseCodeResponse
 ): SectionModel[] => {
     return sections.sections.map((section) => {
-        const sectionKey = parseSectionKey(
-            section.lectures[0].subject_code ??
-                section.tutorials[0].subject_code ??
-                section.section_code
-        );
+        const sectionKey = section.section_code;
         return {
             courses: section.lectures ?? [],
             tutorials: section.tutorials ?? [],
