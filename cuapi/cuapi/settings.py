@@ -46,6 +46,11 @@ LOGGING = {
 
 ALLOWED_HOSTS = ["*"]
 
+if DEBUG:
+    CSRF_ALLOWED_ORIGINS = ["*"]
+else:
+    CSRF_TRUSTED_ORIGINS = ["https://cuapi.cuscheduling.com"]
+
 # Application definition
 
 INSTALLED_APPS = [
