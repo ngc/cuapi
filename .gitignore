@@ -12,3 +12,13 @@ docker-compose.yml
 ui/scheduling/dist
 .DS_Store
 data/
+
+# django
+*.log
+*.pot
+*.pyc
+*.swp
+*.sql
+*.sqlite3
+*.db
+*.bak
