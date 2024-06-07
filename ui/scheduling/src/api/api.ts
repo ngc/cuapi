@@ -2,7 +2,6 @@ import {
     CourseDetails,
     SectionModel,
     isRegistrationClosed,
-    parseSectionKey,
 } from "./AppManager";
 
 const IS_DEV = window.location.hostname !== "cuscheduling.com";
