@@ -169,7 +169,7 @@ USE_TZ = True
 
 STATIC_URL = "static/"
 
-if DEBUG:
+if not DEBUG:
     STATIC_ROOT = os.path.join("/app/static")
 
 # Default primary key field type
