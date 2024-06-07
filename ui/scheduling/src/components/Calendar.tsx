@@ -341,7 +341,7 @@ const CourseInfoDisplay = (props: { course: CourseDetails }) => {
                 </Column>
                 <Column>
                     <CourseInfoPill>
-                        <a>CRN: {props.course.CRN}</a>
+                        <a>CRN: {props.course.crn}</a>
                     </CourseInfoPill>
                 </Column>
                 <OnlinePill
@@ -720,7 +720,10 @@ export const useGetBestSchedules = (resetPage: () => void) => {
 
         setLoading(true);
         generate().then((schedules) => {
-            if (schedules.length === 0) {
+            if (
+                schedules.length === 0 &&
+                appManager.selectedOfferings.length > 0
+            ) {
                 toaster.warning(
                     "No schedules found for the current selection."
                 );
@@ -891,7 +894,7 @@ export const Calendar = observer((props: CalendarProps) => {
                             onCarletonCentral={() => {
                                 const crnSet = new Set<string>();
                                 for (let event of events) {
-                                    crnSet.add(event.course.CRN);
+                                    crnSet.add(event.course.crn);
                                 }
                                 const crns = Array.from(crnSet);
                                 for (let offering of appManager.selectedOnlineOfferings) {
@@ -927,10 +930,10 @@ export const Calendar = observer((props: CalendarProps) => {
                                               ]
                                             : null;
                                     if (course) {
-                                        crns.push(course.CRN);
+                                        crns.push(course.crn);
                                     }
                                     if (tutorial) {
-                                        crns.push(tutorial.CRN);
+                                        crns.push(tutorial.crn);
                                     }
                                 }
 

@@ -7,7 +7,7 @@ import { IS_MOBILE, useAppManager } from "../main";
 import { Column, Row } from "./util";
 
 import { Instance } from "mobx-state-tree";
-import { AppManager, CourseDetails, RelatedOffering } from "../api/AppManager";
+import { AppManager, RelatedOffering, convertTerm } from "../api/AppManager";
 import { SegmentedControl, Segment } from "baseui/segmented-control";
 import { TermPicker } from "./App";
 import { toaster } from "baseui/toast";
@@ -18,12 +18,11 @@ import { BiPlus } from "react-icons/bi";
 import { Button } from "./Button";
 import {
     API,
-    CourseQueryResult,
-    QueryCoursesResponse,
+    Offering,
+    QueryOfferingsResponse,
     convertSectionsToModels,
-    isEmptySection,
-    cleanupSections,
-} from "../api/api";
+} from "../api/newapi";
+import { cleanupSections, isEmptySection } from "../api/api";
 
 export const AddCourseButton = (props: { onClick: () => void }) => {
     return (
@@ -389,15 +388,16 @@ export const CourseResultDisplay = (props: {
     );
 };
 
-export const SingleCourseSearchResultItem = observer(
-    (props: { course: CourseDetails; closeModal: () => void }) => {
+export const SearchableOfferingResultItem = observer(
+    (props: { offering: Offering; closeModal: () => void }) => {
         const appManager = useAppManager();
         const displayInfo = {
-            long_title: props.course.subject_code,
-            description: props.course.course_description,
-            related_offering: props.course.subject_code,
-            section_count: 1,
+            long_title: props.offering.long_title,
+            description: props.offering.description,
+            related_offering: props.offering.related_offering,
         };
+
+        console.log("$$$", displayInfo);
 
         return (
             <CourseResultDisplay
@@ -409,54 +409,37 @@ export const SingleCourseSearchResultItem = observer(
                         appManager.selectedOfferings.find(
                             (offering) =>
                                 offering.offering_name ===
-                                props.course.related_offering
-                        )
-                    ) {
-                        toaster.positive("Adding course to existing selection");
-                    }
-
-                    appManager.addSingleCourse(props.course);
-                }}
-                course={displayInfo}
-            />
-        );
-    }
-);
-
-export const SearchableCourseResultItem = observer(
-    (props: { course: CourseQueryResult; closeModal: () => void }) => {
-        const appManager = useAppManager();
-        const displayInfo = {
-            long_title: props.course.long_title,
-            description: props.course.description,
-            related_offering: props.course.related_offering,
-        };
-
-        return (
-            <CourseResultDisplay
-                onClick={async () => {
-                    props.closeModal();
-
-                    // check if course is already added
-                    if (
-                        appManager.selectedOfferings.find(
-                            (offering) =>
-                                offering.offering_name ===
-                                props.course.related_offering
+                                props.offering.related_offering
                         )
                     ) {
                         toaster.warning("Course already added");
                         return;
                     }
 
-                    const api = new API();
+                    // const api = new API();
 
-                    const response = await api.getSectionsByCourseCode(
-                        props.course.course_code
-                    );
+                    // // const response = await api.getSectionsByCourseCode(
+                    // //     props.course.course_code
+                    // // );
+
+                    // // const sectionModels = cleanupSections(
+                    // //     convertSectionsToModels(response)
+                    // // );
+
+                    // // if (sectionModels.every(isEmptySection)) {
+                    // //     toaster.negative(
+                    // //         "All sections are closed for this course"
+                    // //     );
+                    // //     return;
+                    // // }
+
+                    // // appManager.addOffering({
+                    // //     offering_name: props.course.related_offering,
+                    // //     section_models: sectionModels,
+                    // // });
 
                     const sectionModels = cleanupSections(
-                        convertSectionsToModels(response)
+                        convertSectionsToModels(props.offering.sections)
                     );
 
                     if (sectionModels.every(isEmptySection)) {
@@ -466,8 +449,13 @@ export const SearchableCourseResultItem = observer(
                         return;
                     }
 
+                    console.log("&&& offering", {
+                        offering_name: props.offering.related_offering,
+                        section_models: sectionModels,
+                    });
+
                     appManager.addOffering({
-                        offering_name: props.course.related_offering,
+                        offering_name: props.offering.related_offering,
                         section_models: sectionModels,
                     });
                 }}
@@ -489,27 +477,44 @@ export const useFetchSearchResults = (
         | SearchType.SUBJECT_CODE
         | SearchType.CRN
         | SearchType.COURSE_CODE,
-    appManager?: Instance<typeof AppManager>
+    appManager: Instance<typeof AppManager>
 ) => {
     const [searchResults, setSearchResults] = useState<
-        QueryCoursesResponse | undefined
+        QueryOfferingsResponse | undefined
     >();
     const api = new API();
 
-    appManager = (appManager ?? useAppManager()) as Instance<typeof AppManager>;
-
     useEffect(() => {
-        const fetchData = async (searchQuery: string) => {
-            api.queryCourses(searchQuery, appManager!.convertedTerm()).then(
-                (response: any) => {
-                    setSearchResults(response);
-                }
-            );
-        };
-        console.log("$$$", searchResults);
+        if (searchQuery.length === 0) {
+            return;
+        }
 
-        fetchData(searchQuery);
+        const fetchResults = async () => {
+            try {
+                let response: QueryOfferingsResponse | undefined;
+                switch (activeTab) {
+                    case SearchType.SUBJECT_CODE:
+                        response = await api.queryOfferings(
+                            searchQuery,
+                            convertTerm(appManager.selectedTerm)
+                        );
+                        break;
+                    case SearchType.CRN:
+                        break;
+                    case SearchType.COURSE_CODE:
+                        break;
+                }
+
+                setSearchResults(response);
+            } catch (e) {
+                console.error(e);
+            }
+        };
+
+        fetchResults();
     }, [searchQuery, activeTab, appManager]);
+
+    appManager = (appManager ?? useAppManager()) as Instance<typeof AppManager>;
 
     return [searchResults, () => setSearchResults(undefined)] as const;
 };
@@ -656,18 +661,18 @@ export const CourseSelectionModal = (props: {
                     }}
                 >
                     {searchResults &&
-                        searchResults.courses &&
-                        searchResults.courses.map((course: any) => {
+                        searchResults &&
+                        searchResults.map((offering: Offering) => {
                             return (
                                 <Row
-                                    key={course.related_offering}
+                                    key={offering.related_offering}
                                     $style={{
                                         width: "100%",
                                         justifyContent: "center",
                                     }}
                                 >
-                                    <SearchableCourseResultItem
-                                        course={course}
+                                    <SearchableOfferingResultItem
+                                        offering={offering}
                                         closeModal={props.onClose}
                                     />
                                 </Row>

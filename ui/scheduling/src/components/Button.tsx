@@ -23,6 +23,7 @@ export const Button = (props: ButtonProps) => {
         ":hover": {
             backgroundColor: "rgba(50, 100, 255, 0.025)",
             boxShadow: "0 2px 4px 0 rgba(0, 0, 0, 0.2)",
+            cursor: "pointer",
         },
         transition: "background-color 0.2s, box-shadow 0.2s",
         ...props.$style,

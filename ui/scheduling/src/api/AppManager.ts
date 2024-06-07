@@ -26,7 +26,7 @@ export interface MeetingDetails {
 
 export interface CourseDetails {
     registration_term: string;
-    CRN: string;
+    crn: string;
     subject_code: string;
     long_title: string;
     short_title: string;
@@ -264,12 +264,12 @@ export const AppManager = types
             for (let offering of self.selectedOfferings) {
                 for (let sectionModel of offering.section_models) {
                     for (let course of sectionModel.courses) {
-                        if (course.CRN === crn) {
+                        if (course.crn === crn) {
                             return true;
                         }
                     }
                     for (let course of sectionModel.tutorials) {
-                        if (course.CRN === crn) {
+                        if (course.crn === crn) {
                             return true;
                         }
                     }
@@ -408,7 +408,7 @@ export const AppManager = types
         },
 
         addSingleCourse(course: CourseDetails) {
-            if (self.doesCRNExist(course.CRN)) {
+            if (self.doesCRNExist(course.crn)) {
                 toaster.negative("Course already exists in schedule", {});
                 return;
             }

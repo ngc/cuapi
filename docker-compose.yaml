@@ -1,5 +1,93 @@
 version: '3.8'
 services:
+  db:
+    image: postgres:13.3
+    container_name: db
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: cuapi_db
+    volumes:
+      - db-volume:/var/lib/postgresql/data
+    networks:
+      - cuapi
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "postgres"]
+      interval: 30s
+      timeout: 30s
+      retries: 10
+  redis:
+    image: redis:6.2.6
+    container_name: redis
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 30s
+      retries: 10
+    networks:
+      - cuapi
+  backend:
+    build:
+      context: .
+      dockerfile: ./docker/Dockerfile.backend
+    image: ngcnathan/backend:latest
+    env_file:
+      - .env
+    environment:
+      POSTGRES_HOST: "db"
+      POSTGRES_DB: "cuapi_db"
+      REDIS_HOST: "redis"
+    ports:
+      - "3969:3969"
+    networks:
+      - cuapi
+    volumes:
+      - .:/app
+    command: sh -c "python manage.py migrate && gunicorn --bind 0.0.0.0:3969 cuapi.wsgi:application"
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3969/healthz"]
+      interval: 30s
+      timeout: 30s
+      retries: 10
+  celery-beat:
+    image: ngcnathan/backend:latest
+    env_file:
+      - .env
+    environment:
+      REDIS_HOST: "redis"
+      POSTGRES_HOST: "db"
+      POSTGRES_DB: "cuapi_db"
+    networks:
+      - cuapi
+    depends_on:
+      backend:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    # celery -A cuapi beat -l info --scheduler django_celery_beat.schedulers:DatabaseScheduler
+    command: ["celery", "-A", "cuapi", "beat", "-l", "info", "--scheduler", "django_celery_beat.schedulers:DatabaseScheduler"]
+  celery-worker:
+    image: ngcnathan/backend:latest
+    env_file:
+      - .env
+    environment:
+      REDIS_HOST: "redis"
+      POSTGRES_HOST: "db"
+      POSTGRES_DB: "cuapi_db"
+    networks:
+      - cuapi
+    depends_on:
+      backend:
+        condition: service_healthy
+    # celery -A cuapi worker -l info --scheduler django_celery_beat.schedulers:DatabaseScheduler 
+    command: ["celery", "-A", "cuapi", "worker", "-l", "info", "--scheduler", "django_celery_beat.schedulers:DatabaseScheduler"]
   nginx:
     build:
       context: .
@@ -19,47 +107,6 @@ services:
     env_file:
       - .env
     image: ngcnathan/nginx:latest
-  backend:
-    build:
-      context: .
-      dockerfile: ./docker/Dockerfile.backend
-    image: ngcnathan/backend:latest
-    env_file:
-      - .env
-    environment:
-      POSTGRES_HOST: "db"
-      POSTGRES_DB: "cuapi"
-      REDIS_HOST: "redis"
-      NEO4J_URI: "bolt://neo4j:7687"
-    ports:
-      - "3969:3969"
-    networks:
-      - cuapi
-    volumes:
-      - .:/app
-    depends_on:
-      db:
-        condition: service_healthy
-    command: ["./wait-for-it.sh", "neo4j:7687", "--", "/backend"]
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3969/healthz"]
-      interval: 30s
-      timeout: 30s
-      retries: 10
-  scrapercron:
-    build:
-      context: .
-      dockerfile: ./docker/Dockerfile.scraper
-    image: ngcnathan/scrapercron:latest
-    env_file:
-      - .env
-    environment:
-      BACKEND_URL: "backend:3969"
-    networks:
-      - cuapi
-    depends_on:
-      backend:
-        condition: service_healthy
   frontend:
     build:
       context: .
@@ -71,45 +118,11 @@ services:
     networks:
       - cuapi
     image: ngcnathan/frontend:latest
-  redis:
-    image: redis/redis-stack:6.2.6-v7
-    ports:
-      - "6379:6379"
-    env_file:
-      - .env
-    networks:
-      - cuapi
-  db:
-    image: neo4j:latest
-    hostname: neo4j
-    container_name: neo4j
-    ports:
-      - "7474:7474" # HTTP
-      - "7687:7687" # Bolt
-    environment:
-      NEO4J_AUTH: neo4j/testpassword
-      NEO4J_dbms_memory_heap_initial__size: 512M
-      NEO4J_dbms_memory_heap_max__size: 1G
-    volumes:
-      - db-data:/var/lib/neo4j/data
-    ulimits:
-      nofile:
-        soft: 40000
-        hard: 40000
-    restart: unless-stopped
-    networks:
-      - cuapi
-    healthcheck:
-    #/var/lib/neo4j/bin/neo4j status
-      test: ["CMD", "/var/lib/neo4j/bin/neo4j", "status"]
-      interval: 30s
-      timeout: 30s
-      retries: 10
-volumes:
-  db-data:
-  certbot-data:
-  certbot-logs:
-  saved-nginx-conf:
 networks:
   cuapi:
     driver: bridge
+volumes:
+  db-volume:
+  certbot-data:
+  certbot-logs:
+  saved-nginx-conf:

@@ -132,21 +132,8 @@ export class API {
 export const convertSectionsToModels = (
     sections: GetSectionsByCourseCodeResponse
 ): SectionModel[] => {
-    console.log("$$$ sections", sections);
-
-    const getSubjectCode = (section: SectionResult) => {
-        if (section.lectures && section.lectures.length > 0) {
-            return section.lectures[0].subject_code;
-        }
-        if (section.tutorials && section.tutorials.length > 0) {
-            return section.tutorials[0].subject_code;
-        }
-
-        return "";
-    };
-
     return sections.sections.map((section) => {
-        const sectionKey = parseSectionKey(getSubjectCode(section));
+        const sectionKey = section.section_code;
         return {
             courses: section.lectures ?? [],
             tutorials: section.tutorials ?? [],
