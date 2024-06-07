@@ -22,6 +22,10 @@ http {
 
         server_name $BACKEND_URL;
 
+        location /static/ {
+            alias /app/staticfiles/;
+        }
+
         location / {
             proxy_pass http://backend:3969;
             proxy_set_header Host $host;
