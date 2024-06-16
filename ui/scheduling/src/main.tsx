@@ -149,7 +149,7 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
                                 flexDirection: "column",
                                 position: "relative",
                                 userSelect: "none",
-                                overflow-x: "hidden",
+                                overflowX: "hidden",
                             }}
                         >
                             <App />
