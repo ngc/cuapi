@@ -633,7 +633,7 @@ const CalendarButtonRow = (props: {
                 justifyContent: "space-between",
                 width: "100%",
                 padding: "10px",
-
+                marginBottom: 10px,
                 backgroundColor: "rgba(255, 255, 255, 0.5)",
                 backdropFilter: "blur(10px)",
                 borderRadius: "10px",
