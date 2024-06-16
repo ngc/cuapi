@@ -141,11 +141,17 @@ export const App = observer(() => {
                             justifyContent: "center",
                             marginBottom: "10px",
                             userSelect: "none",
+                            pointerEvents: "none",
                         }}
                     >
                         <footer>
                             Made with ❤️ by{" "}
-                            <a href="https://nathancoulas.com">Nathan Coulas</a>
+                            <a
+                                href="https://nathancoulas.com"
+                                style={{ pointerEvents: "auto" }}
+                            >
+                                Nathan Coulas
+                            </a>
                         </footer>
                     </Row>
                 </Column>
